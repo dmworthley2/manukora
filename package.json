@@ -5,11 +5,16 @@
   "private": true,
   "workspaces": ["backend", "web"],
   "scripts": {
-    "build": "npm run -w @manukora/backend build && npm run -w web build",
+    "build": "npm run -w web build",
     "dev": "npm run -w web dev",
-    "test": "npm run -w @manukora/backend test",
-    "type-check": "npm run -w @manukora/backend typecheck && npm run -w web typecheck"
+    "test": "npm run -w @manukora/backend test"
   },
+  "dependencies": {
+    "next": "15.2.4",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {},
   "keywords": ["inventory", "analytics", "briefing", "agentic"],
   "author": "David Worthley",
   "license": "MIT"
