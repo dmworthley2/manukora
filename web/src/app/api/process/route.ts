@@ -1,15 +1,15 @@
-import {
-  processCsv,
-  inferFieldMapping,
-  createSupabaseAdminClient,
-  createReportRun,
-  finalizeRun,
-  loadEnv,
-  uploadCsv,
-} from "@manukora/backend";
-
 export async function POST(req: Request) {
   try {
+    const {
+      processCsv,
+      inferFieldMapping,
+      createSupabaseAdminClient,
+      createReportRun,
+      finalizeRun,
+      loadEnv,
+      uploadCsv,
+    } = await import("@manukora/backend");
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const period = (formData.get("period") as string) || new Date().toISOString().slice(0, 7); // YYYY-MM

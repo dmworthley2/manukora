@@ -1,7 +1,9 @@
-import { uploadCsv, createSupabaseAdminClient, loadEnv } from "@manukora/backend";
-
 export async function POST(req: Request) {
   try {
+    const { uploadCsv, createSupabaseAdminClient, loadEnv } = await import(
+      "@manukora/backend"
+    );
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 

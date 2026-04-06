@@ -1,13 +1,10 @@
-import {
-  createReportRun,
-  listReportRuns,
-  createSupabaseAdminClient,
-  loadEnv,
-  type CreateReportRunInput,
-} from "@manukora/backend";
+import type { CreateReportRunInput } from "@manukora/backend";
 
 export async function POST(req: Request) {
   try {
+    const { createReportRun, createSupabaseAdminClient, loadEnv } = await import(
+      "@manukora/backend"
+    );
     const body = (await req.json()) as CreateReportRunInput;
     const env = loadEnv();
     const client = createSupabaseAdminClient(env);
@@ -31,6 +28,9 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
+    const { listReportRuns, createSupabaseAdminClient, loadEnv } = await import(
+      "@manukora/backend"
+    );
     const env = loadEnv();
     const client = createSupabaseAdminClient(env);
     const runs = await listReportRuns(client, { limit: 50 });

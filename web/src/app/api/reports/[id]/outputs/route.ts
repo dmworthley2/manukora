@@ -1,10 +1,11 @@
-import { listOutputsForRun, createSupabaseAdminClient, loadEnv } from "@manukora/backend";
-
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { listOutputsForRun, createSupabaseAdminClient, loadEnv } = await import(
+      "@manukora/backend"
+    );
     const { id } = await params;
     const env = loadEnv();
     const client = createSupabaseAdminClient(env);
