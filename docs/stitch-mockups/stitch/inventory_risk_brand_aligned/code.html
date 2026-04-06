@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manukora | Inventory &amp; Stock Cover Risk</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&amp;family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#775a00",
+                        "primary-gold": "#F6BE00",
+                        "on-primary": "#ffffff",
+                        "secondary": "#274e3d", // Deep green
+                        "on-secondary": "#fdf9ef",
+                        "background": "#fdf9ef", // Premium Cream
+                        "surface": "#f7f3e9", // Slightly darker cream
+                        "surface-container": "#e6e2d8",
+                        "on-surface": "#1c1c16",
+                        "on-surface-variant": "#4d4635",
+                        "outline": "#7f7663",
+                        "error": "#93000a",
+                        "error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "sm": "0.125rem",
+                        "md": "0.25rem",
+                        "lg": "0.375rem",
+                        "xl": "0.5rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Newsreader", "serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Manrope", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .honey-gradient {
+            background: linear-gradient(135deg, #775a00 0%, #F6BE00 100%);
+        }
+        .text-balance { text-wrap: balance; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d0c5af; border-radius: 4px; }
+        
+        body {
+            min-height: max(884px, 100dvh);
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-gold/30">
+<!-- TopAppBar: Components_9 -->
+<header class="bg-[#fdf9ef]/80 backdrop-blur-xl dark:bg-[#1c1c16]/80 docked full-width top-0 z-50 fixed border-b border-[#f7f3e9] dark:border-[#2a2a24]">
+<div class="flex justify-between items-center px-6 py-4 w-full h-16">
+<div class="flex items-center gap-4">
+<button class="text-[#775a00] hover:bg-[#e6e2d8] dark:hover:bg-[#3d3d35] p-2 rounded transition-colors active:opacity-80 active:scale-[0.99]">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-['Newsreader'] italic text-[#1c1c16] dark:text-[#fdf9ef] text-2xl tracking-tight">Manukora</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex gap-8 items-center">
+<a class="text-[#1c1c16]/70 dark:text-[#fdf9ef]/70 font-label font-semibold uppercase tracking-widest text-[10px] hover:text-[#775a00] transition-colors" href="#">Summary</a>
+<a class="text-[#1c1c16]/70 dark:text-[#fdf9ef]/70 font-label font-semibold uppercase tracking-widest text-[10px] hover:text-[#775a00] transition-colors" href="#">Sales</a>
+<a class="text-[#775a00] font-label font-bold uppercase tracking-widest text-[10px] border-b-2 border-[#775a00] pb-1" href="#">Inventory</a>
+<a class="text-[#1c1c16]/70 dark:text-[#fdf9ef]/70 font-label font-semibold uppercase tracking-widest text-[10px] hover:text-[#775a00] transition-colors" href="#">Reorders</a>
+</div>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container ring-1 ring-[#775a00]/10">
+<img alt="Executive Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGY5dv4h-K_pedrC8B-kWF2DzMBVLiaURy8NHu7W4rGflmy_yZs_oTF0Til7V0zCUMv-VGGSetb8Wd-pt24YqKj4cV0TY0N_k7chbO7_A_XudPQExy7Iu46THeceA_BvfQi1nM0YZEklLuOdyC1pIyQFQXeyTIXZafamYNwtLjWREEUqqJqUYpifbR_ioGWeTwrajohCqv_CabCylumBoShEjR_KmYG3zZ_azxUyC6yZKUcp3YsRbAX7zTj1VYjsNZa3ogxIO-chE"/>
+</div>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-4 md:px-12 max-w-7xl mx-auto">
+<!-- Hero Title Section: Newsreader Font Focus -->
+<section class="mb-12 grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
+<div class="md:col-span-8">
+<span class="font-label text-[10px] uppercase tracking-[0.2em] text-primary font-bold mb-3 block">Supply Chain Intelligence</span>
+<h2 class="font-headline text-5xl md:text-6xl font-medium tracking-tight text-on-surface leading-[1.1]">Stock Cover <br/>&amp; <span class="text-primary italic font-semibold">Inventory Risk</span></h2>
+<p class="mt-6 text-on-surface-variant max-w-lg font-body text-sm leading-relaxed opacity-80">Real-time monitoring of SKU longevity based on current sell-through velocity. Prioritizing reorders for maximum revenue protection.</p>
+</div>
+<div class="md:col-span-4 flex flex-col items-end">
+<div class="bg-surface border border-surface-container rounded-sm px-6 py-5 flex items-center gap-8">
+<div class="text-right">
+<p class="font-label text-[9px] uppercase text-on-surface-variant tracking-[0.1em] mb-1">Total SKUs</p>
+<p class="font-headline text-3xl font-medium text-on-surface">142</p>
+</div>
+<div class="h-10 w-px bg-surface-container"></div>
+<div class="text-right">
+<p class="font-label text-[9px] uppercase text-error tracking-[0.1em] mb-1">Critical (&lt;15d)</p>
+<p class="font-headline text-3xl font-medium text-error">12</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Inventory Table: Precision Organics style -->
+<section class="bg-white border border-surface-container rounded-sm overflow-hidden">
+<div class="px-8 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-surface">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-xl">monitoring</span>
+<h3 class="font-headline text-xl font-semibold text-on-surface">Critical Cover Risk Analysis</h3>
+</div>
+<div class="flex gap-3">
+<button class="bg-surface hover:bg-surface-container text-on-surface-variant text-[10px] font-label font-bold uppercase tracking-widest px-4 py-2.5 rounded-sm transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">filter_list</span> Filter
+                </button>
+<button class="bg-surface hover:bg-surface-container text-on-surface-variant text-[10px] font-label font-bold uppercase tracking-widest px-4 py-2.5 rounded-sm transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">download</span> Export
+                </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface">
+<th class="px-8 py-4 font-label text-[9px] uppercase tracking-[0.15em] text-on-surface-variant font-bold border-b border-surface-container">SKU Description</th>
+<th class="px-6 py-4 font-label text-[9px] uppercase tracking-[0.15em] text-on-surface-variant font-bold border-b border-surface-container">On-Hand</th>
+<th class="px-6 py-4 font-label text-[9px] uppercase tracking-[0.15em] text-on-surface-variant font-bold border-b border-surface-container">Daily Velocity</th>
+<th class="px-6 py-4 font-label text-[9px] uppercase tracking-[0.15em] text-on-surface-variant font-bold border-b border-surface-container">Days of Cover</th>
+<th class="px-6 py-4 font-label text-[9px] uppercase tracking-[0.15em] text-on-surface-variant font-bold border-b border-surface-container text-right">Revenue Opportunity</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface">
+<!-- Critical Risk -->
+<tr class="hover:bg-surface/30 transition-colors">
+<td class="px-8 py-6">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-sm bg-background border border-surface-container p-1 flex-shrink-0">
+<img alt="Manuka Honey 850+" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6_6R16_iOMVw8HjvdmpgwcdMpXo5dg_YpDxx54WWp0-6JFnGVDmtZ35KkKeHOpX3GZW4fU6vlFEwy0ApaLrqG3qjtnfeePTQ2oeqK5FjUd53U6tzsUL7y091dVJLVbZwacZJyh7kxGrmKVCUq8Tc1p36VxRXtwTjTIOul3vY52aGl6zO3_v6Wn5NSfR2dS7CXkVVLnfuD16AiLYN9OT9uji4fVRS2gck4Wze2e9XS81JVO2apR9KM0aznMkbOrRaUEOV31bWPfRU"/>
+</div>
+<div>
+<p class="font-headline font-semibold text-on-surface text-base">UMF 20+ MGO 850+ (500g)</p>
+<p class="font-label text-[10px] text-on-surface-variant/60 uppercase tracking-widest mt-0.5">SKU: MK-850-500</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-6"><span class="font-headline font-medium text-lg text-on-surface">420</span> <span class="text-[10px] font-label text-on-surface-variant uppercase tracking-widest ml-1">units</span></td>
+<td class="px-6 py-6 font-body text-sm text-on-surface">58.4 <span class="text-[10px] font-label text-on-surface-variant tracking-widest ml-1">/day</span></td>
+<td class="px-6 py-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-error-container/40 text-error rounded-sm font-label font-bold text-[10px] uppercase tracking-wider border border-error/10">
+<span class="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span>
+                                7 Days
+                            </div>
+</td>
+<td class="px-6 py-6 text-right">
+<p class="font-headline font-semibold text-lg text-on-surface">$124,500</p>
+<p class="font-label text-[9px] text-error font-bold uppercase tracking-widest mt-0.5">High Loss Exposure</p>
+</td>
+</tr>
+<!-- High Risk -->
+<tr class="hover:bg-surface/30 transition-colors">
+<td class="px-8 py-6">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-sm bg-background border border-surface-container p-1 flex-shrink-0">
+<img alt="Manuka Honey 1100+" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAT6aw22EPwI4r2apTF0h5PezcXko8wS2W0NzHS86dRnCHGaiPLXAlC8awwtDHN7P_Cjy8nSiaU_jP_wvhIrod8fSJjVKhxWWAzrenqzHqeJQpOtbb6bc9G9DGF97nOTbkhySWa35GcY50mtglWDQGBezqVlkuqDx2-YAyDB8HONfJyTnCT34X3kkX9p5Ba3wUF8vevxhJ_pkLrDmjSUdhZxyAyJwKbvTjIEckNxquhByPJ3Nd2m2xx0NnTJoPh0XHPTPdxqKNGyjU"/>
+</div>
+<div>
+<p class="font-headline font-semibold text-on-surface text-base">UMF 24+ MGO 1122+ (250g)</p>
+<p class="font-label text-[10px] text-on-surface-variant/60 uppercase tracking-widest mt-0.5">SKU: MK-1100-250</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-6"><span class="font-headline font-medium text-lg text-on-surface">185</span> <span class="text-[10px] font-label text-on-surface-variant uppercase tracking-widest ml-1">units</span></td>
+<td class="px-6 py-6 font-body text-sm text-on-surface">15.2 <span class="text-[10px] font-label text-on-surface-variant tracking-widest ml-1">/day</span></td>
+<td class="px-6 py-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-error-container/40 text-error rounded-sm font-label font-bold text-[10px] uppercase tracking-wider border border-error/10">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                                12 Days
+                            </div>
+</td>
+<td class="px-6 py-6 text-right">
+<p class="font-headline font-semibold text-lg text-on-surface">$82,300</p>
+<p class="font-label text-[9px] text-error font-bold uppercase tracking-widest mt-0.5">Stockout Imminent</p>
+</td>
+</tr>
+<!-- Moderate Risk -->
+<tr class="hover:bg-surface/30 transition-colors">
+<td class="px-8 py-6">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-sm bg-background border border-surface-container p-1 flex-shrink-0">
+<img alt="Manuka Honey 500+" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7hZiu0pjyXhGS9mb7m-B-qbY7AJroNNzMfhB5AAxDYYJRMgSqiekw4ztiyi1vgWKKRtyPD2OLHcpnO7hXVeY3FwYB5Fxb-W-ylPIULFtgaS1XIIRA-T69QuJjR4rWYlXI10GJJfY7m0LVRAq8EstiTusxXlNOgBSuLHJsv38Vl4EnlZmGoU2NV6g7EoTMQxyrBxlnR3X057mJLVYYmdFnShN09MfEW7-pzt4xetEAzCkod67Dhxrq24rpw_lYZMcTt3sq2Z2Sa_I"/>
+</div>
+<div>
+<p class="font-headline font-semibold text-on-surface text-base">UMF 15+ MGO 514+ (500g)</p>
+<p class="font-label text-[10px] text-on-surface-variant/60 uppercase tracking-widest mt-0.5">SKU: MK-514-500</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-6"><span class="font-headline font-medium text-lg text-on-surface">1,450</span> <span class="text-[10px] font-label text-on-surface-variant uppercase tracking-widest ml-1">units</span></td>
+<td class="px-6 py-6 font-body text-sm text-on-surface">65.0 <span class="text-[10px] font-label text-on-surface-variant tracking-widest ml-1">/day</span></td>
+<td class="px-6 py-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-primary-gold/10 text-primary rounded-sm font-label font-bold text-[10px] uppercase tracking-wider border border-primary-gold/20">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-gold"></span>
+                                22 Days
+                            </div>
+</td>
+<td class="px-6 py-6 text-right">
+<p class="font-headline font-semibold text-lg text-on-surface">$45,100</p>
+<p class="font-label text-[9px] text-primary-gold font-bold uppercase tracking-widest mt-0.5">Replenish Soon</p>
+</td>
+</tr>
+<!-- Safe -->
+<tr class="hover:bg-surface/30 transition-colors">
+<td class="px-8 py-6">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-sm bg-background border border-surface-container p-1 flex-shrink-0">
+<img alt="Multifloral Manuka" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5JhOvcdBEr7Y4afbaFchVEKEElc-D47sBnCCN2p69O39aXSLxmjQoD43mWdtoyBeMNl6IVEm8jBtHy0UjR02xfYUb1fCNHni89IwNgypItmd6Hx5Jr5XkL3Mm7UcUoP1eHrfnpZ6CDRUbLA5VdJrNNLGq3Hkx7oFSV8HdaHeyZVJDVkoAq9h9UTsUKjGa2ZXEh9FvyzAkcCIWWxnGy3BPWIfVz_MzAYs_GEPM8C6jE3aySVYM_p958TNx2DPHoMiBs10G82rw2ZU"/>
+</div>
+<div>
+<p class="font-headline font-semibold text-on-surface text-base">Multifloral MGO 80+ (1kg)</p>
+<p class="font-label text-[10px] text-on-surface-variant/60 uppercase tracking-widest mt-0.5">SKU: MK-080-1000</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-6"><span class="font-headline font-medium text-lg text-on-surface">3,200</span> <span class="text-[10px] font-label text-on-surface-variant uppercase tracking-widest ml-1">units</span></td>
+<td class="px-6 py-6 font-body text-sm text-on-surface">78.2 <span class="text-[10px] font-label text-on-surface-variant tracking-widest ml-1">/day</span></td>
+<td class="px-6 py-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-secondary/5 text-secondary rounded-sm font-label font-bold text-[10px] uppercase tracking-wider border border-secondary/10">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                41 Days
+                            </div>
+</td>
+<td class="px-6 py-6 text-right">
+<p class="font-headline font-semibold text-lg text-on-surface">$18,400</p>
+<p class="font-label text-[9px] text-secondary font-bold uppercase tracking-widest mt-0.5">Stable Inventory</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-8 py-6 bg-surface flex justify-between items-center border-t border-surface-container">
+<p class="font-label text-[10px] uppercase text-on-surface-variant tracking-widest font-semibold">Showing 4 of 142 SKUs</p>
+<div class="flex gap-4">
+<button class="p-2 rounded-sm hover:bg-surface-container transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-base">chevron_left</span>
+</button>
+<button class="p-2 rounded-sm hover:bg-surface-container transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-base">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Insight Cards: Deep Greens and Premium Accents -->
+<section class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="bg-white p-7 rounded-sm border border-surface-container shadow-sm hover:border-primary-gold/30 transition-all group">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary bg-primary-gold/10 p-2.5 rounded-sm">local_shipping</span>
+<span class="text-[9px] font-label text-secondary font-bold uppercase tracking-widest bg-secondary/5 px-2 py-0.5 rounded-sm">+12% vs LW</span>
+</div>
+<h4 class="font-headline font-semibold text-on-surface text-lg">In-Transit Coverage</h4>
+<p class="text-xs text-on-surface-variant mt-2 leading-relaxed opacity-75">8,500 units currently at sea. Expected arrival at Oakland Port: Nov 24.</p>
+<div class="mt-6 w-full bg-surface h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[65%]"></div>
+</div>
+</div>
+<div class="bg-white p-7 rounded-sm border border-surface-container shadow-sm hover:border-error/30 transition-all">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-error bg-error-container/20 p-2.5 rounded-sm">trending_down</span>
+<span class="text-[9px] font-label text-error font-bold uppercase tracking-widest bg-error-container/20 px-2 py-0.5 rounded-sm">-4.2% Trend</span>
+</div>
+<h4 class="font-headline font-semibold text-on-surface text-lg">Average Days Cover</h4>
+<p class="text-xs text-on-surface-variant mt-2 leading-relaxed opacity-75">Global average has dropped to 31.4 days. Below the 45-day target.</p>
+<div class="mt-6 flex gap-1.5 items-end h-8">
+<div class="h-6 w-full bg-error-container rounded-sm"></div>
+<div class="h-4 w-full bg-error-container opacity-50 rounded-sm"></div>
+<div class="h-8 w-full bg-error-container rounded-sm"></div>
+<div class="h-5 w-full bg-error-container opacity-30 rounded-sm"></div>
+</div>
+</div>
+<div class="bg-secondary p-7 rounded-sm shadow-xl flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-all"></div>
+<div>
+<h4 class="font-headline font-semibold text-white text-xl">Auto-Reorder Recs</h4>
+<p class="text-xs text-on-secondary/70 mt-3 leading-relaxed">The system has prepared 8 draft purchase orders for your review based on current velocity.</p>
+</div>
+<button class="mt-8 honey-gradient text-white font-label font-bold text-[11px] uppercase tracking-[0.2em] py-4 rounded-sm shadow-lg active:scale-95 transition-transform">
+                Review Purchase Orders
+            </button>
+</div>
+</section>
+</main>
+<!-- BottomNavBar: Components_9 -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center pt-2 pb-safe px-4 bg-[#fdf9ef]/90 backdrop-blur-lg dark:bg-[#1c1c16]/90 border-t border-[#f7f3e9] dark:border-[#2a2a24] shadow-[0_-10px_40px_rgba(79,70,50,0.06)] md:hidden">
+<a class="flex flex-col items-center justify-center text-[#1c1c16]/50 dark:text-[#fdf9ef]/50 px-4 py-2 hover:text-[#775a00] transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">assessment</span>
+<span class="mt-1 font-label uppercase tracking-widest text-[9px] font-semibold">Summary</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#1c1c16]/50 dark:text-[#fdf9ef]/50 px-4 py-2 hover:text-[#775a00] transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">trending_up</span>
+<span class="mt-1 font-label uppercase tracking-widest text-[9px] font-semibold">Sales</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#e6e2d8] dark:bg-[#3d3d35] text-[#1c1c16] dark:text-[#f6be00] rounded-sm px-5 py-2 transition-transform active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="mt-1 font-label uppercase tracking-widest text-[9px] font-bold">Inventory</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#1c1c16]/50 dark:text-[#fdf9ef]/50 px-4 py-2 hover:text-[#775a00] transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">sync_alt</span>
+<span class="mt-1 font-label uppercase tracking-widest text-[9px] font-semibold">Reorders</span>
+</a>
+</nav>
+</body></html>

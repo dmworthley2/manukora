@@ -1,0 +1,1 @@
+{"version":3,"file":"admin-client.js","sourceRoot":"","sources":["../../src/supabase/admin-client.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAuB,MAAM,uBAAuB,CAAC;AAU1E,sEAAsE;AACtE,MAAM,UAAU,yBAAyB,CAAC,GAAQ;IAChD,OAAO,YAAY,CAAC,GAAG,CAAC,YAAY,EAAE,GAAG,CAAC,yBAAyB,EAAE;QACnE,IAAI,EAAE;YACJ,cAAc,EAAE,KAAK;YACrB,gBAAgB,EAAE,KAAK;SACxB;KACF,CAAC,CAAC;AACL,CAAC"}

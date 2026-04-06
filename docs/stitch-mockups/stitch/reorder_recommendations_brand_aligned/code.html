@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,700;0,800;1,400;1,500&amp;family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "on-error": "#ffffff",
+                  "tertiary": "#274e3d", // Deep Green from Manukora
+                  "on-tertiary-fixed": "#002114",
+                  "on-primary-fixed": "#251a00",
+                  "on-error-container": "#93000a",
+                  "outline": "#7f7663",
+                  "on-tertiary-fixed-variant": "#274e3d",
+                  "error": "#ba1a1a",
+                  "on-surface-variant": "#4d4635",
+                  "error-container": "#ffdad6",
+                  "surface-container-highest": "#e6e2d8",
+                  "inverse-primary": "#f6be00",
+                  "inverse-surface": "#1c1c16",
+                  "secondary-fixed": "#d7e7d3",
+                  "on-secondary": "#ffffff",
+                  "primary-fixed-dim": "#f6be00",
+                  "on-tertiary": "#ffffff",
+                  "tertiary-fixed-dim": "#a5d0b9",
+                  "tertiary-fixed": "#c1ecd4",
+                  "surface-container-high": "#f1eee4",
+                  "surface-container-low": "#fdf9ef",
+                  "on-primary": "#ffffff",
+                  "on-secondary-container": "#586757",
+                  "background": "#fdf9ef", // Premium Cream
+                  "outline-variant": "#d0c5af",
+                  "on-background": "#1c1c16",
+                  "surface-container": "#f7f3e9",
+                  "primary-container": "#f6be00",
+                  "surface-variant": "#e6e2d8",
+                  "surface-tint": "#775a00",
+                  "on-secondary-fixed-variant": "#3c4a3c",
+                  "secondary": "#536252",
+                  "surface": "#fdf9ef",
+                  "secondary-fixed-dim": "#bbcbb8",
+                  "surface-dim": "#e6e2d8",
+                  "surface-container-lowest": "#ffffff",
+                  "on-secondary-fixed": "#111f12",
+                  "tertiary-container": "#92bca6",
+                  "surface-bright": "#fdf9ef",
+                  "inverse-on-surface": "#fdf9ef",
+                  "on-tertiary-container": "#254c3b",
+                  "primary-fixed": "#ffdf98",
+                  "on-primary-fixed-variant": "#5a4300",
+                  "secondary-container": "#d4e4d0",
+                  "on-surface": "#1c1c16",
+                  "on-primary-container": "#584200",
+                  "primary": "#775a00" // Gold accent
+          },
+          "borderRadius": {
+                  "DEFAULT": "0.125rem",
+                  "lg": "0.25rem",
+                  "xl": "0.5rem",
+                  "full": "9999px",
+                  "sm": "0px" // Using rectangular/scientific sharp corners as per "Mānuka Reserve"
+          },
+          "fontFamily": {
+                  "headline": ["Newsreader", "serif"],
+                  "body": ["Manrope", "sans-serif"],
+                  "label": ["Manrope", "sans-serif"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      line-height: 1;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+    }
+    .glass-panel {
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+    .gold-button {
+      background: #775a00;
+      transition: all 0.2s ease;
+    }
+    .gold-button:active {
+      transform: scale(0.99);
+      opacity: 0.8;
+    }
+    .breathing-margin {
+      padding-left: clamp(1.5rem, 6vw, 4rem);
+      padding-right: clamp(1.5rem, 6vw, 4rem);
+    }
+    h1, h2, h3, .serif-italic {
+      font-family: 'Newsreader', serif;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar (from COMPONENTS_9) -->
+<header class="bg-[#fdf9ef]/80 dark:bg-[#1c1c16]/80 backdrop-blur-xl docked full-width top-0 z-50 fixed flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#775a00] dark:text-[#f6be00] cursor-pointer hover:bg-[#e6e2d8] dark:hover:bg-[#3d3d35] p-1 transition-colors">menu</span>
+<h1 class="font-['Newsreader'] italic text-[#1c1c16] dark:text-[#fdf9ef] text-2xl tracking-tight">Manukora</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-9 h-9 rounded-full bg-surface-container overflow-hidden ring-1 ring-outline-variant/30">
+<img alt="Executive Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5Wuh_pGLBYYxnr_7Sc93dvv6YEu9fc9DltGazP4eQY_I-Vu2WkhYu-3CVGKSt3WBxfMFD6Aj1UeFjnPgRZZIGXPjsTOL2RJR0aqR0cAJsFvzUsxIzY93QkpB4DR7wpXhm1TqCqxCXN6BLfPVupnd4yZp9XdCpr-6B3hA-_xOBCxgk3znwusayiOOXNkfVGdNYPJbdPfFrHIDmjyW4Ah26ZXK1rjUbcEIo3YuRF_T6kpigR7aanLgOE6ICEMV_GjXCvLGpsWAop_Y"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 breathing-margin">
+<!-- Page Header -->
+<section class="mb-10">
+<p class="font-label text-tertiary font-bold uppercase tracking-[0.2em] text-[0.65rem] mb-2">Demand Intelligence</p>
+<h2 class="text-4xl md:text-5xl font-medium text-on-surface tracking-tight leading-[1.1] mb-4">Smart Reorder Recommendations</h2>
+<p class="font-body text-on-surface-variant text-base leading-relaxed max-w-2xl">
+        Optimizing procurement by identifying high-value revenue opportunities and aligning inventory levels with real-time market velocity.
+      </p>
+</section>
+<!-- Priority Metrics Grid (Scientific Estate Style) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-1 mb-12 bg-outline-variant/20 border border-outline-variant/20">
+<div class="md:col-span-2 bg-surface p-8 flex flex-col justify-between">
+<div>
+<span class="font-label text-on-surface-variant/70 uppercase tracking-widest text-[0.6rem] font-bold">Total Revenue at Risk</span>
+<p class="font-headline text-5xl font-normal text-on-surface mt-2">$284,150.00</p>
+<div class="mt-4 flex items-center gap-2 text-tertiary">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="font-label text-xs font-semibold tracking-wide">+12.4% VS LAST PERIOD</span>
+</div>
+</div>
+</div>
+<div class="bg-surface p-8 flex flex-col justify-center items-center text-center">
+<span class="material-symbols-outlined text-3xl text-primary mb-3">auto_awesome</span>
+<p class="font-label text-on-surface-variant/70 text-[0.6rem] uppercase tracking-widest font-bold mb-1">AI Confidence</p>
+<p class="font-headline text-3xl font-normal">98.2%</p>
+</div>
+</div>
+<!-- Recommendation List -->
+<div class="space-y-8">
+<h3 class="font-headline text-2xl font-medium text-on-surface">Active Procurement Priority</h3>
+<!-- SKU Item 1: High Priority -->
+<div class="border-b border-outline-variant/30 pb-8">
+<div class="flex flex-col md:flex-row gap-6 md:items-center">
+<div class="flex-1 flex gap-5 items-start">
+<div class="w-14 h-14 bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary text-2xl">inventory_2</span>
+</div>
+<div>
+<p class="font-label text-[0.6rem] text-tertiary font-bold tracking-widest mb-1">SKU ID: MKO-UMF20-500</p>
+<h4 class="font-headline text-xl font-semibold text-on-surface leading-tight">Manuka Honey UMF 20+ (500g)</h4>
+<p class="font-body text-xs text-on-surface-variant mt-1 italic opacity-80 serif-italic">High revenue risk, steady demand velocity</p>
+</div>
+</div>
+<div class="grid grid-cols-2 md:flex items-center gap-8 md:gap-10 w-full md:w-auto">
+<div class="text-left md:text-right">
+<p class="font-label text-[0.55rem] uppercase tracking-widest text-on-surface-variant/60 font-bold">Suggested Qty</p>
+<p class="font-headline text-lg text-on-surface">1,250 <span class="text-[0.65rem] font-sans opacity-50 uppercase tracking-tighter">units</span></p>
+</div>
+<div class="text-left md:text-right">
+<p class="font-label text-[0.55rem] uppercase tracking-widest text-on-surface-variant/60 font-bold">Revenue Opportunity</p>
+<p class="font-headline text-lg text-tertiary">$106,250</p>
+</div>
+<div class="col-span-2 md:col-span-1">
+<button class="gold-button text-white font-label text-[0.7rem] font-bold uppercase tracking-widest px-8 py-3 w-full">
+                Approve Reorder
+              </button>
+</div>
+</div>
+</div>
+</div>
+<!-- SKU Item 2: Conflict Flag -->
+<div class="border-b border-outline-variant/30 pb-8">
+<div class="flex flex-col md:flex-row gap-6 md:items-center mb-6">
+<div class="flex-1 flex gap-5 items-start">
+<div class="w-14 h-14 bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary text-2xl">inventory_2</span>
+</div>
+<div>
+<p class="font-label text-[0.6rem] text-tertiary font-bold tracking-widest mb-1">SKU ID: MKO-UMF15-250</p>
+<h4 class="font-headline text-xl font-semibold text-on-surface leading-tight">Manuka Honey UMF 15+ (250g)</h4>
+<p class="font-body text-xs text-on-surface-variant mt-1 italic opacity-80 serif-italic">Replenishment threshold met</p>
+</div>
+</div>
+<div class="grid grid-cols-2 md:flex items-center gap-8 md:gap-10 w-full md:w-auto">
+<div class="text-left md:text-right">
+<p class="font-label text-[0.55rem] uppercase tracking-widest text-on-surface-variant/60 font-bold">Suggested Qty</p>
+<p class="font-headline text-lg text-on-surface">640 <span class="text-[0.65rem] font-sans opacity-50 uppercase tracking-tighter">units</span></p>
+</div>
+<div class="text-left md:text-right">
+<p class="font-label text-[0.55rem] uppercase tracking-widest text-on-surface-variant/60 font-bold">Revenue Opportunity</p>
+<p class="font-headline text-lg text-tertiary">$35,200</p>
+</div>
+<div class="col-span-2 md:col-span-1">
+<button class="gold-button text-white font-label text-[0.7rem] font-bold uppercase tracking-widest px-8 py-3 w-full">
+                Approve Reorder
+              </button>
+</div>
+</div>
+</div>
+<!-- Conflict Alert Panel -->
+<div class="bg-error-container/10 border-l-4 border-error py-4 px-6 flex flex-col md:flex-row md:items-center gap-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-error text-xl">warning</span>
+<span class="font-label text-[0.65rem] font-bold text-on-error-container uppercase tracking-widest">Trend Conflict Alert</span>
+</div>
+<p class="flex-1 text-sm text-on-error-container/80 font-body">Demand slowing. AI recommendation: Reorder 20% less than usual.</p>
+<button class="text-[0.65rem] font-bold text-error uppercase tracking-widest hover:underline text-left">Apply Adjustment</button>
+</div>
+</div>
+<!-- SKU Item 3: Seasonal Upsell -->
+<div class="border-b border-outline-variant/30 pb-8">
+<div class="flex flex-col md:flex-row gap-6 md:items-center">
+<div class="flex-1 flex gap-5 items-start">
+<div class="w-14 h-14 bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary text-2xl">inventory_2</span>
+</div>
+<div>
+<p class="font-label text-[0.6rem] text-tertiary font-bold tracking-widest mb-1">SKU ID: MKO-RAW-850</p>
+<h4 class="font-headline text-xl font-semibold text-on-surface leading-tight">Raw Multifloral Honey (850g)</h4>
+<p class="font-body text-xs text-on-surface-variant mt-1 italic opacity-80 serif-italic">Increasing seasonal trend, low safety stock</p>
+</div>
+</div>
+<div class="grid grid-cols-2 md:flex items-center gap-8 md:gap-10 w-full md:w-auto">
+<div class="text-left md:text-right">
+<p class="font-label text-[0.55rem] uppercase tracking-widest text-on-surface-variant/60 font-bold">Suggested Qty</p>
+<p class="font-headline text-lg text-on-surface">2,000 <span class="text-[0.65rem] font-sans opacity-50 uppercase tracking-tighter">units</span></p>
+</div>
+<div class="text-left md:text-right">
+<p class="font-label text-[0.55rem] uppercase tracking-widest text-on-surface-variant/60 font-bold">Revenue Opportunity</p>
+<p class="font-headline text-lg text-tertiary">$90,000</p>
+</div>
+<div class="col-span-2 md:col-span-1">
+<button class="gold-button text-white font-label text-[0.7rem] font-bold uppercase tracking-widest px-8 py-3 w-full">
+                Approve Reorder
+              </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Data Visualization Section -->
+<div class="mt-20 flex flex-col lg:flex-row gap-16 items-start">
+<div class="w-full lg:w-1/2">
+<h3 class="font-headline text-3xl font-medium mb-4">Replenishment Velocity</h3>
+<p class="font-body text-on-surface-variant mb-10 leading-relaxed">AI-driven projection shows a sharp increase in velocity for the premium UMF tier in the next 30 days based on historical seasonal shifts.</p>
+<div class="h-72 w-full bg-surface-container border border-outline-variant/20 p-8 flex items-end justify-between relative">
+<!-- Vertical Graph Lines -->
+<div class="w-full h-full absolute inset-0 flex flex-col justify-between p-8 pointer-events-none">
+<div class="border-t border-outline-variant/10 w-full"></div>
+<div class="border-t border-outline-variant/10 w-full"></div>
+<div class="border-t border-outline-variant/10 w-full"></div>
+<div class="border-t border-outline-variant/10 w-full"></div>
+</div>
+<!-- Abstract representation of a graph -->
+<div class="w-10 bg-tertiary/20" style="height: 40%;"></div>
+<div class="w-10 bg-tertiary/30" style="height: 65%;"></div>
+<div class="w-10 bg-tertiary/40" style="height: 50%;"></div>
+<div class="w-10 bg-tertiary/60" style="height: 85%;"></div>
+<div class="w-10 bg-primary" style="height: 95%;"></div>
+<div class="w-10 bg-tertiary/70" style="height: 75%;"></div>
+</div>
+</div>
+<div class="w-full lg:w-1/3 aspect-[4/5] relative">
+<img alt="Stock Analytics" class="w-full h-full object-cover shadow-xl border border-outline-variant/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApEUmyuDz-w58xRVgIjZaaWCX45VaA9LGDdT3zIrSU1jA357OuseEOSE8TXEeqVhfm7rNg0ORsJDN_FXpxDqc0Oi43zOjNNhxJ6Y5APvoEbV2H7Eo7KOwRd3H4y93bCgGEiJsPTkaH6d99G_eoDgyBD_RbC98Xeu6Y_cNM07CVz83caFwD8nOZ5EN4YN8pWc4hpTfVQmYbgBjZQJTm20itN0PeqflP_yL4mwcA34SRPB0r1mRmxRa_JL7YZT-zlPvEKvXEIAkPWY0"/>
+<div class="absolute -bottom-6 -left-6 bg-tertiary text-white p-6 shadow-lg hidden md:block">
+<p class="font-headline italic text-lg leading-tight text-white/90">The gold standard in harvest tracking.</p>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (from COMPONENTS_9) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center pt-2 pb-safe px-4 bg-[#fdf9ef]/90 backdrop-blur-lg dark:bg-[#1c1c16]/90 shadow-[0_-10px_40px_rgba(79,70,50,0.06)]">
+<!-- Summary -->
+<a class="flex flex-col items-center justify-center text-[#1c1c16]/50 dark:text-[#fdf9ef]/50 px-4 py-1.5 hover:text-[#775a00] dark:hover:text-[#f6be00] transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">assessment</span>
+<span class="font-['Manrope'] uppercase tracking-widest text-[10px] font-semibold mt-1">Summary</span>
+</a>
+<!-- Sales -->
+<a class="flex flex-col items-center justify-center text-[#1c1c16]/50 dark:text-[#fdf9ef]/50 px-4 py-1.5 hover:text-[#775a00] dark:hover:text-[#f6be00] transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">trending_up</span>
+<span class="font-['Manrope'] uppercase tracking-widest text-[10px] font-semibold mt-1">Sales</span>
+</a>
+<!-- Inventory -->
+<a class="flex flex-col items-center justify-center text-[#1c1c16]/50 dark:text-[#fdf9ef]/50 px-4 py-1.5 hover:text-[#775a00] dark:hover:text-[#f6be00] transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">inventory_2</span>
+<span class="font-['Manrope'] uppercase tracking-widest text-[10px] font-semibold mt-1">Inventory</span>
+</a>
+<!-- Reorders (ACTIVE) -->
+<a class="flex flex-col items-center justify-center bg-[#e6e2d8] dark:bg-[#3d3d35] text-[#1c1c16] dark:text-[#f6be00] rounded-sm px-6 py-1.5 scale-95 duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[24px]">sync_alt</span>
+<span class="font-['Manrope'] uppercase tracking-widest text-[10px] font-semibold mt-1">Reorders</span>
+</a>
+</nav>
+</body></html>

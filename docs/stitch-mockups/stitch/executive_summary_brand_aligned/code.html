@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manukora S&amp;OP Executive Summary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,700;0,800;1,400;1,500;1,700;1,800&amp;family=Manrope:wght@400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#775a00",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#f6be00",
+                      "secondary": "#3f6653",
+                      "on-secondary": "#ffffff",
+                      "secondary-container": "#d7e7d3",
+                      "tertiary": "#1c1c16",
+                      "background": "#fdf9ef",
+                      "on-background": "#1c1c16",
+                      "surface": "#fdf9ef",
+                      "on-surface": "#1c1c16",
+                      "surface-variant": "#f7f3e9",
+                      "on-surface-variant": "#4d4635",
+                      "outline": "#7f7663",
+                      "outline-variant": "#d0c5af",
+                      "error": "#ba1a1a",
+                      "surface-container": "#f1ede1",
+                      "surface-container-high": "#e6e2d8",
+                      "surface-container-low": "#f9f5eb"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem",
+                      "sm": "0.125rem"
+              },
+              "fontFamily": {
+                      "headline": ["Newsreader", "serif"],
+                      "body": ["Manrope", "sans-serif"],
+                      "label": ["Manrope", "sans-serif"]
+              }
+            },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .premium-shadow {
+            box-shadow: 0 10px 40px rgba(79, 70, 50, 0.06);
+        }
+        .honey-gradient {
+            background: linear-gradient(135deg, #775a00 0%, #f6be00 100%);
+        }
+        .breathing-margin {
+            padding-left: clamp(1.5rem, 6vw, 4rem);
+            padding-right: clamp(1.5rem, 6vw, 4rem);
+        }
+    </style>
+</head>
+<body class="bg-[#fdf9ef] text-[#1c1c16] font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar (as per COMPONENTS_9) -->
+<header class="bg-[#fdf9ef]/80 backdrop-blur-xl dark:bg-[#1c1c16]/80 flex justify-between items-center px-6 py-4 w-full docked full-width top-0 z-50 fixed">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#775a00] dark:text-[#f6be00] cursor-pointer">menu</span>
+<h1 class="font-['Newsreader'] italic text-[#1c1c16] dark:text-[#fdf9ef] text-2xl tracking-tight">Manukora</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-8 text-[#1c1c16]/70 dark:text-[#fdf9ef]/70 font-semibold tracking-wide text-xs uppercase">
+<span class="text-[#775a00] font-bold cursor-pointer">Dashboard</span>
+<span class="hover:text-[#775a00] transition-colors cursor-pointer">Supply Chain</span>
+<span class="hover:text-[#775a00] transition-colors cursor-pointer">Marketplace</span>
+</div>
+<div class="w-10 h-10 rounded-sm bg-surface-container overflow-hidden ring-1 ring-outline/20">
+<img alt="Executive Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvjCFewWXsO25EjNdtbqSWbUd6DK-ejybXiMRUS2gXUZKSO_gsPW8AXrmlcDya5YjyX-OyDPB0W1nGdZGdkOdEWXCgEdbi3dD93s8aod3dt4PIgitDt60E82h7uWbgLxtd0OkPm53y1E1UwxMUWXmU1kamUVI7YBtKyrqVyx27qbDtIHHm9tP8cVfYl3fVYb_fQVHuxtwrT0q-I40g541elXCte5lPi99E_y4clq52jo5QahRWoOOkeUZndWQ6GAxWi4qz5uI3gwA"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 breathing-margin">
+<!-- Editorial Header Section -->
+<section class="mb-12">
+<div class="flex flex-col md:flex-row justify-between items-end gap-6">
+<div class="max-w-2xl">
+<span class="font-label text-secondary font-bold tracking-[0.2em] uppercase text-[10px] mb-2 block">Monthly Performance</span>
+<h2 class="font-headline text-5xl md:text-7xl font-extrabold text-[#1c1c16] leading-none mb-6">Executive <span class="text-primary italic font-medium">Summary</span></h2>
+<p class="text-on-surface-variant text-lg max-w-md leading-relaxed">A high-precision overview of current sales trajectories and inventory health for the MTD period.</p>
+</div>
+<div class="flex gap-3">
+<div class="px-4 py-2 bg-surface-container-low rounded-full flex items-center gap-2 border border-outline/10">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Live Market Data</span>
+</div>
+</div>
+</div>
+</section>
+<!-- KPI Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-12">
+<!-- Total Revenue -->
+<div class="md:col-span-12 lg:col-span-7 bg-[#f7f3e9] rounded-sm p-8 relative overflow-hidden group">
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-16">
+<span class="text-on-surface-variant font-label font-bold uppercase tracking-[0.2em] text-[10px]">Total Revenue (MTD)</span>
+<div class="bg-secondary/10 text-secondary px-3 py-1 rounded-sm text-[10px] font-bold flex items-center gap-1 uppercase tracking-wider">
+<span class="material-symbols-outlined text-sm">trending_up</span> +12.4% vs LY
+                    </div>
+</div>
+<div class="mb-2">
+<span class="font-headline text-6xl md:text-8xl font-bold tracking-tight text-[#1c1c16]">$1,284,500</span>
+</div>
+<div class="w-full h-24 mt-8 flex items-end gap-1.5">
+<div class="flex-1 bg-secondary/20 h-1/2 rounded-sm"></div>
+<div class="flex-1 bg-secondary/20 h-2/3 rounded-sm"></div>
+<div class="flex-1 bg-secondary/20 h-1/3 rounded-sm"></div>
+<div class="flex-1 bg-secondary/40 h-3/4 rounded-sm"></div>
+<div class="flex-1 bg-secondary/50 h-1/2 rounded-sm"></div>
+<div class="flex-1 bg-primary h-full rounded-sm"></div>
+<div class="flex-1 bg-primary h-5/6 rounded-sm"></div>
+</div>
+</div>
+</div>
+<!-- Average Order Value -->
+<div class="md:col-span-6 lg:col-span-5 bg-[#e6e2d8] rounded-sm p-8 flex flex-col justify-between">
+<div>
+<span class="text-on-surface-variant font-label font-bold uppercase tracking-[0.2em] text-[10px] block mb-8">Avg. Order Value</span>
+<span class="font-headline text-5xl font-bold tracking-tight text-[#1c1c16]">$84.20</span>
+</div>
+<div class="pt-8 mt-8 border-t border-outline/10">
+<p class="text-xs text-on-surface-variant leading-relaxed font-medium uppercase tracking-wider">Stabilized after Q3 price adjustment. Retention rates up <span class="text-secondary font-bold">4.2%</span>.</p>
+</div>
+</div>
+<!-- Channel Split -->
+<div class="md:col-span-6 lg:col-span-12 bg-surface-container-low rounded-sm p-8 border border-outline/5">
+<span class="text-on-surface-variant font-label font-bold uppercase tracking-[0.2em] text-[10px] block mb-8">Channel Split</span>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-bold text-xs uppercase tracking-widest text-on-surface-variant">Shopify</span>
+<span class="text-xl font-headline font-bold">62%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="honey-gradient h-full w-[62%]"></div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-bold text-xs uppercase tracking-widest text-on-surface-variant">Amazon</span>
+<span class="text-xl font-headline font-bold">38%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-[38%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Alerts & Actions Section -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+<div class="lg:col-span-4">
+<h3 class="font-headline text-4xl font-bold mb-6 tracking-tight">What to <span class="text-primary italic font-medium">Act On</span></h3>
+<p class="text-on-surface-variant mb-8 text-sm leading-relaxed">Identified critical items requiring executive oversight or strategic pivot within the next 72 hours.</p>
+<div class="bg-secondary-container rounded-sm p-6 relative overflow-hidden border border-secondary/10">
+<div class="relative z-10">
+<span class="text-[10px] font-bold uppercase tracking-[0.2em] text-secondary">Supply Chain Status</span>
+<div class="flex items-center gap-3 mt-3">
+<span class="material-symbols-outlined text-secondary">check_circle</span>
+<span class="font-bold text-xs uppercase tracking-widest text-secondary">Logistics: On Track</span>
+</div>
+</div>
+<div class="absolute right-[-10px] bottom-[-10px] opacity-5">
+<span class="material-symbols-outlined text-9xl">local_shipping</span>
+</div>
+</div>
+</div>
+<div class="lg:col-span-8 space-y-6">
+<!-- Alert 1 -->
+<div class="bg-surface-container-low p-6 rounded-sm flex items-start gap-6 hover:bg-[#e6e2d8] transition-colors cursor-pointer group border border-outline/5">
+<div class="w-12 h-12 rounded-sm bg-error/5 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-2">
+<h4 class="font-bold text-base uppercase tracking-tight">2 SKUs at Critical Low Stock</h4>
+<span class="bg-error/10 text-error px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-[0.1em]">Action Needed</span>
+</div>
+<p class="text-on-surface-variant text-sm leading-relaxed">UMF 24+ (250g) and Multifloral (500g) are projected to stock out in 8 days. Ocean freight delay of 4 days confirmed.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors self-center">chevron_right</span>
+</div>
+<!-- Alert 2 -->
+<div class="bg-surface-container-low p-6 rounded-sm flex items-start gap-6 hover:bg-[#e6e2d8] transition-colors cursor-pointer group border border-outline/5">
+<div class="w-12 h-12 rounded-sm bg-primary/5 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">trending_down</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-2">
+<h4 class="font-bold text-base uppercase tracking-tight">High-Value SKU Trend Shift</h4>
+<span class="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-[0.1em]">Review Required</span>
+</div>
+<p class="text-on-surface-variant text-sm leading-relaxed">UMF 15+ 3-month sales trend declining by 14%. Competitive entry on Amazon US suspected. Reviewing pricing strategy.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors self-center">chevron_right</span>
+</div>
+<!-- Alert 3 -->
+<div class="bg-surface-container-low p-6 rounded-sm flex items-start gap-6 hover:bg-[#e6e2d8] transition-colors cursor-pointer group border border-outline/5">
+<div class="w-12 h-12 rounded-sm bg-secondary/5 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-secondary">inventory_2</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-2">
+<h4 class="font-bold text-base uppercase tracking-tight">Inventory Rebalance: West Coast</h4>
+<span class="bg-secondary-container text-secondary px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-[0.1em]">In Progress</span>
+</div>
+<p class="text-on-surface-variant text-sm leading-relaxed">Reallocation of 4,000 units from East to West Coast DCs to optimize shipping costs and lead times.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors self-center">chevron_right</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (as per COMPONENTS_9) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center pt-2 pb-safe px-4 bg-[#fdf9ef]/90 backdrop-blur-lg dark:bg-[#1c1c16]/90 shadow-[0_-10px_40px_rgba(79,70,50,0.06)] rounded-t-sm md:hidden">
+<div class="flex flex-col items-center justify-center bg-[#e6e2d8] dark:bg-[#3d3d35] text-[#1c1c16] dark:text-[#f6be00] rounded-sm px-4 py-1.5 transition-all active:scale-95 duration-150 ease-in-out">
+<span class="material-symbols-outlined text-xl">assessment</span>
+<span class="font-['Manrope'] uppercase tracking-widest text-[10px] font-semibold mt-0.5">Summary</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#1c1c16]/50 dark:text-[#fdf9ef]/50 px-4 py-1.5 hover:text-[#775a00] transition-all">
+<span class="material-symbols-outlined text-xl">trending_up</span>
+<span class="font-['Manrope'] uppercase tracking-widest text-[10px] font-semibold mt-0.5">Sales</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#1c1c16]/50 dark:text-[#fdf9ef]/50 px-4 py-1.5 hover:text-[#775a00] transition-all">
+<span class="material-symbols-outlined text-xl">inventory_2</span>
+<span class="font-['Manrope'] uppercase tracking-widest text-[10px] font-semibold mt-0.5">Inventory</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#1c1c16]/50 dark:text-[#fdf9ef]/50 px-4 py-1.5 hover:text-[#775a00] transition-all">
+<span class="material-symbols-outlined text-xl">sync_alt</span>
+<span class="font-['Manrope'] uppercase tracking-widest text-[10px] font-semibold mt-0.5">Reorders</span>
+</div>
+</nav>
+</body></html>

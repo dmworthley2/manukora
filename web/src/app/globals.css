@@ -1,0 +1,133 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-headline);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-headline);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+}
+
+:root {
+  /* Precision Organics: Base palette */
+  --background: #fdf9ef;
+  --foreground: #1c1c16;
+  --primary: #775a00;
+  --primary-foreground: #ffffff;
+  --primary-container: #f6be00;
+  --secondary: #3f6653;
+  --secondary-foreground: #ffffff;
+  --secondary-container: #d7e7d3;
+  --tertiary: #1c1c16;
+
+  /* Surfaces: Tonal hierarchy */
+  --surface: #fdf9ef;
+  --surface-variant: #f7f3e9;
+  --surface-container: #f1ede1;
+  --surface-container-low: #f9f5eb;
+  --surface-container-high: #e6e2d8;
+  --surface-container-highest: #e6e2d8;
+
+  /* Supporting */
+  --on-surface: #1c1c16;
+  --on-surface-variant: #4d4635;
+  --outline: #7f7663;
+  --outline-variant: #d0c5af;
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+
+  /* Border & input */
+  --border: #d0c5af;
+  --input: #f7f3e9;
+  --ring: #775a00;
+
+  /* Fonts */
+  --font-headline: "Newsreader", serif;
+  --font-body: "Manrope", sans-serif;
+  --font-label: "Manrope", sans-serif;
+  --font-mono: "Menlo", monospace;
+}
+
+.dark {
+  --background: #1c1c16;
+  --foreground: #fdf9ef;
+  --primary: #f6be00;
+  --primary-foreground: #3d3d35;
+  --secondary: #b4cdb0;
+  --secondary-foreground: #1c3d31;
+  --tertiary: #fdf9ef;
+
+  --surface: #1c1c16;
+  --surface-variant: #3d3d35;
+  --surface-container: #2a2a24;
+  --surface-container-low: #2a2a24;
+  --surface-container-high: #3d3d35;
+  --surface-container-highest: #4a4a42;
+
+  --on-surface: #fdf9ef;
+  --on-surface-variant: #d0c5af;
+  --outline: #7f7663;
+  --outline-variant: #4d4635;
+  --error: #ffb4ab;
+  --error-container: #93000a;
+
+  --border: #3d3d35;
+  --input: #2a2a24;
+  --ring: #f6be00;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    font-family: var(--font-body);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headline);
+  }
+}
+
+@layer components {
+  .honey-gradient {
+    background: linear-gradient(to bottom right, var(--primary), var(--primary-container));
+  }
+
+  .premium-shadow {
+    box-shadow: 0 10px 40px rgba(79, 70, 50, 0.06);
+  }
+
+  .breathing-margin {
+    padding-left: clamp(1.5rem, 6vw, 3rem);
+    padding-right: clamp(1.5rem, 6vw, 3rem);
+  }
+
+  .glass-card {
+    background-color: rgba(253, 249, 239, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(208, 197, 175, 0.1);
+  }
+}
