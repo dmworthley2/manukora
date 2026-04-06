@@ -1,0 +1,16 @@
+{
+  "name": "manukora",
+  "version": "0.1.0",
+  "description": "Monthly commercial & inventory briefing (agentic)",
+  "private": true,
+  "workspaces": ["backend", "web"],
+  "scripts": {
+    "build": "npm run -w @manukora/backend build && npm run -w web build",
+    "dev": "npm run -w web dev",
+    "test": "npm run -w @manukora/backend test",
+    "type-check": "npm run -w @manukora/backend typecheck && npm run -w web typecheck"
+  },
+  "keywords": ["inventory", "analytics", "briefing", "agentic"],
+  "author": "David Worthley",
+  "license": "MIT"
+}
