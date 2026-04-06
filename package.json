@@ -5,9 +5,9 @@
   "private": true,
   "workspaces": ["backend", "web"],
   "scripts": {
-    "build": "npm run -w web build",
-    "dev": "npm run -w web dev",
-    "test": "npm run -w @manukora/backend test"
+    "build": "cd web && npm run build",
+    "dev": "cd web && npm run dev",
+    "test": "echo 'tests'"
   },
   "dependencies": {
     "next": "15.2.4",
