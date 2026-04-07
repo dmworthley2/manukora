@@ -1,16 +1,25 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Upload, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConnectorCard } from "./ConnectorCard";
 import { useDatasetUpload } from "@/hooks/useDatasetUpload";
 import { useToast } from "@/hooks/useToast";
 import { useDataSource } from "@/contexts/DataSourceContext";
-import type { UploadRow } from "@/types/upload";
+
+interface ProcessResponse {
+  success: boolean;
+  reportRunId: string;
+  uploadId: string;
+  factBundle: unknown;
+  warnings: string[];
+  inventoryDataInserted: boolean;
+}
 
 export interface UploadSectionProps {
-  onUploadSuccess?: (upload: UploadRow) => void;
+  onUploadSuccess?: (response: ProcessResponse) => void;
 }
 
 const CONNECTORS = [
@@ -29,6 +38,7 @@ const CONNECTORS = [
 ];
 
 export function UploadSection({ onUploadSuccess }: UploadSectionProps) {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -74,9 +84,14 @@ export function UploadSection({ onUploadSuccess }: UploadSectionProps) {
       setHasUploadedData(true);
       toast({
         title: "Upload successful",
-        description: `${file.name} uploaded successfully`,
+        description: `${file.name} uploaded and processing started`,
       });
       onUploadSuccess?.(result);
+
+      // Navigate to executive summary to view the briefing
+      setTimeout(() => {
+        router.push(`/dashboard/executive-summary?reportRunId=${result.reportRunId}`);
+      }, 1000);
     } else {
       setSelectedFile(null);
       toast({

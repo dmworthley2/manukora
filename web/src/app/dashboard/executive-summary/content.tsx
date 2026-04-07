@@ -40,11 +40,19 @@ interface BriefingResponse {
   readonly sections: readonly BriefingSection[];
 }
 
+interface MetricsResponse {
+  readonly totalRevenue: number;
+  readonly avgOrderValue: number;
+  readonly totalUnitsSold: number;
+  readonly periodMonth: string;
+}
+
 export default function ExecutiveSummaryContent() {
   const searchParams = useSearchParams();
   const reportRunId = searchParams.get("reportRunId");
 
   const [briefing, setBriefing] = useState<BriefingResponse | null>(null);
+  const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
@@ -61,20 +69,61 @@ export default function ExecutiveSummaryContent() {
         setLoading(true);
         const response = await fetch(`/api/briefings/${reportRunId}`);
         if (!response.ok) {
+          if (response.status === 404) {
+            // Briefing not ready yet, will retry
+            return false;
+          }
           throw new Error(`HTTP ${response.status}`);
         }
         const data = (await response.json()) as BriefingResponse;
         setBriefing(data);
         setError(null);
+
+        // Fetch metrics once briefing is ready
+        try {
+          const metricsResponse = await fetch(`/api/briefings/${reportRunId}/metrics`);
+          if (metricsResponse.ok) {
+            const metricsData = (await metricsResponse.json()) as MetricsResponse;
+            setMetrics(metricsData);
+          }
+        } catch (metricsErr) {
+          // Metrics fetch failed, but don't block briefing display
+          console.warn("Failed to fetch metrics:", metricsErr);
+        }
+
+        return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load briefing");
         setBriefing(null);
+        return false;
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBriefing();
+    let pollInterval: NodeJS.Timeout | null = null;
+
+    const startPolling = async () => {
+      const success = await fetchBriefing();
+      if (!success) {
+        // Briefing not ready, poll every 2 seconds
+        pollInterval = setInterval(async () => {
+          const ready = await fetchBriefing();
+          if (ready && pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+        }, 2000);
+      }
+    };
+
+    startPolling();
+
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
   }, [reportRunId]);
 
   if (!reportRunId || error) {
@@ -91,7 +140,13 @@ export default function ExecutiveSummaryContent() {
     return (
       <div className="min-h-screen bg-[#fdf9ef] flex items-center justify-center">
         <div className="text-center text-[#4d4635]">
-          <p className="text-lg">Loading briefing...</p>
+          <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-[#775a00] border-t-transparent rounded-full animate-spin" />
+          </div>
+          <p className="text-lg font-medium mb-2">Generating briefing...</p>
+          <p className="text-sm text-[#4d4635]/70">
+            {briefing ? "Finalizing report" : "Analyzing data and preparing insights"}
+          </p>
         </div>
       </div>
     );
@@ -123,10 +178,10 @@ export default function ExecutiveSummaryContent() {
       }))
     );
 
-  // Calculate KPIs from approval summary
+  // Calculate KPIs from approval summary and metrics
   const approvalSummary = briefing.briefing_status.approval_summary;
-  const totalRevenue = 1284500; // Placeholder - would come from actual data
-  const avgOrderValue = 84.2; // Placeholder - would come from actual data
+  const totalRevenue = metrics?.totalRevenue ?? 0;
+  const avgOrderValue = metrics?.avgOrderValue ?? 0;
 
   return (
     <div className="bg-[#fdf9ef] min-h-screen">
@@ -219,21 +274,27 @@ export default function ExecutiveSummaryContent() {
               <span className="text-xs font-bold uppercase tracking-[0.2em] block mb-4 opacity-80">
                 Total Revenue (MTD)
               </span>
-              <h3 className="font-serif text-5xl font-bold tracking-tight mb-3">${(totalRevenue / 1000000).toFixed(2)}M</h3>
+              <h3 className="font-serif text-5xl font-bold tracking-tight mb-3">
+                {totalRevenue >= 1000000
+                  ? `$${(totalRevenue / 1000000).toFixed(2)}M`
+                  : `$${(totalRevenue / 1000).toFixed(1)}K`}
+              </h3>
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
-                <TrendingUp className="w-4 h-4" /> +12.4% vs LY
+                <TrendingUp className="w-4 h-4" /> {metrics ? "From Sales Data" : "Calculating..."}
               </div>
             </div>
 
             {/* AOV KPI */}
             <div className="bg-[#e6e2d8] p-8 rounded-sm">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[#4d4635] text-xs font-bold uppercase tracking-[0.2em]">Avg. Order Value</span>
+                <span className="text-[#4d4635] text-xs font-bold uppercase tracking-[0.2em]">Avg. Revenue/SKU</span>
                 <span className="text-[9px] font-bold bg-[#3f6653]/10 text-[#3f6653] px-2 py-0.5 rounded-sm uppercase">
-                  98% Confidence
+                  {metrics ? "Calculated" : "Loading"}
                 </span>
               </div>
-              <h3 className="font-serif text-4xl font-bold tracking-tight text-[#1c1c16]">${avgOrderValue.toFixed(2)}</h3>
+              <h3 className="font-serif text-4xl font-bold tracking-tight text-[#1c1c16]">
+                ${avgOrderValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </h3>
             </div>
 
             {/* Approval Status */}

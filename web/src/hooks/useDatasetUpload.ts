@@ -6,6 +6,15 @@ interface ValidationResult {
   error: string | null;
 }
 
+interface ProcessResponse {
+  success: boolean;
+  reportRunId: string;
+  uploadId: string;
+  factBundle: unknown;
+  warnings: string[];
+  inventoryDataInserted: boolean;
+}
+
 export function useDatasetUpload() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +37,7 @@ export function useDatasetUpload() {
     return { valid: true, error: null };
   };
 
-  const upload = async (file: File): Promise<UploadRow | null> => {
+  const upload = async (file: File): Promise<ProcessResponse | null> => {
     const validation = validateFile(file);
     if (!validation.valid) {
       setError(validation.error);
@@ -43,23 +52,23 @@ export function useDatasetUpload() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/uploads", {
+      const response = await fetch("/api/process", {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Upload failed");
+        throw new Error(data.error || "Processing failed");
       }
 
-      const result: UploadRow = await response.json();
+      const result: ProcessResponse = await response.json();
       setSuccess(true);
       setError(null);
 
       return result;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Upload failed";
+      const message = err instanceof Error ? err.message : "Processing failed";
       setError(message);
       setSuccess(false);
       return null;

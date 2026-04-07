@@ -9,6 +9,15 @@ import { useDatasets } from "@/hooks/useDatasets";
 import { useToast } from "@/hooks/useToast";
 import type { UploadRow } from "@/types/upload";
 
+interface ProcessResponse {
+  success: boolean;
+  reportRunId: string;
+  uploadId: string;
+  factBundle: unknown;
+  warnings: string[];
+  inventoryDataInserted: boolean;
+}
+
 export default function DataSourcesPage() {
   const router = useRouter();
   const { datasets, isLoading, refetch } = useDatasets();
@@ -20,11 +29,8 @@ export default function DataSourcesPage() {
     setUploads(datasets);
   }, [datasets]);
 
-  const handleUploadSuccess = async (upload: UploadRow) => {
-    // Add new upload to top of list
-    setUploads((prev) => [upload, ...prev]);
-
-    // Refetch to stay in sync
+  const handleUploadSuccess = async (response: ProcessResponse) => {
+    // Refetch uploads to stay in sync with newly processed data
     refetch();
   };
 
