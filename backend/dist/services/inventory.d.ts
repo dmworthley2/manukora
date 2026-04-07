@@ -14,7 +14,7 @@ export declare function upsertProductCatalog(client: SupabaseAdminClient, produc
     error?: string;
 }>;
 /**
- * Upsert inventory state (current snapshot).
+ * Insert inventory state (current snapshot).
  * One row per SKU (replaces entire inventory state for these SKUs).
  */
 export declare function upsertInventoryState(client: SupabaseAdminClient, inventory: readonly InventoryStateInsert[]): Promise<{
