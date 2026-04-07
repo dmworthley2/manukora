@@ -194,11 +194,11 @@ export default function DashboardPage() {
                   ? `$${(metadata.totalRevenue as number).toLocaleString()}`
                   : "—"}
               </span>
-              {metadata?.revenueGrowth && (
+              {metadata?.revenueGrowth ? (
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
                   <span>📈</span> {metadata.revenueGrowth as string}
                 </div>
-              )}
+              ) : null}
             </CardContent>
           </Card>
 
@@ -213,7 +213,7 @@ export default function DashboardPage() {
               <span className="font-headline text-4xl font-bold tracking-tight text-foreground block">
                 {metadata?.avgOrderValue ? `$${(metadata.avgOrderValue as number).toFixed(2)}` : "—"}
               </span>
-              {metadata?.avgOrderValueConfidence && (
+              {metadata?.avgOrderValueConfidence ? (
                 <details className="group mt-6">
                   <summary className="list-none cursor-pointer flex items-center gap-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60 hover:opacity-100">
                     <span>Drill Down Logic</span>
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                     <p>{metadata.avgOrderValueConfidence as string}</p>
                   </div>
                 </details>
-              )}
+              ) : null}
             </CardContent>
           </Card>
         </div>
