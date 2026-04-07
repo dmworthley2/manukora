@@ -196,7 +196,7 @@ export default function DashboardPage() {
               </span>
               {metadata?.revenueGrowth && (
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
-                  <span>📈</span> {metadata.revenueGrowth}
+                  <span>📈</span> {metadata.revenueGrowth as string}
                 </div>
               )}
             </CardContent>
