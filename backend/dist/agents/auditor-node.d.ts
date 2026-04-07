@@ -1,9 +1,9 @@
 import type { BriefingState } from "./types.js";
 /**
- * Auditor node: Verify BriefingDraft against FactBundle.
- * Checks: numerical accuracy, no hallucinations, logic consistency, citation format.
- * Timeout: 1 minute
- * Returns: updated state with auditResult and approved flag
+ * Auditor node: Blackboard pattern - review analyst sections per section.
+ * Generates AuditorReview[] per section with challenges and notes.
+ * Timeout: 2 minutes (one pass for all 5 sections)
+ * Returns: updated state with auditorReviews
  */
 export declare function runAuditorNode(state: BriefingState, env: {
     ANTHROPIC_API_KEY?: string;

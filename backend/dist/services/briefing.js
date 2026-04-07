@@ -5,23 +5,29 @@ import { isWorkflowApproved } from "../agents/orchestration.js";
  * Returns markdown-formatted briefing ready for storage and display.
  */
 function formatBriefingAsMarkdown(state) {
-    if (!state.analystDraft) {
+    if (!state.analystDraft || !Array.isArray(state.analystDraft)) {
         return "No briefing generated";
     }
     const lines = [];
     // Header with metadata
     lines.push(`# Executive Briefing`);
     lines.push(`**Period**: ${state.period}`);
-    lines.push(`**Generated**: ${state.analystDraft.generatedAt}`);
-    if (state.iterationCount > 1) {
-        lines.push(`**Iterations**: ${state.iterationCount - 1}`);
+    lines.push(`**Status**: ${state.overall_status || "in-progress"}`);
+    if (state.iterationCount > 0) {
+        lines.push(`**Iterations**: ${state.iterationCount}`);
     }
     lines.push("");
-    // Sections
-    for (const section of state.analystDraft.sections) {
+    // Sections (all 5 sections in order)
+    for (const section of state.analystDraft) {
         lines.push(`## ${section.title}`);
-        lines.push(section.content);
         lines.push("");
+        lines.push(section.analyst_draft);
+        lines.push("");
+        if (section.analyst_reasoning) {
+            lines.push("**Reasoning**:");
+            lines.push(section.analyst_reasoning);
+            lines.push("");
+        }
     }
     return lines.join("\n");
 }

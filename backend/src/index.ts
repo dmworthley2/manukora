@@ -6,6 +6,17 @@ export type {
   UploadRow,
   ReportRunRow,
   ReportRunStatus,
+  AgentReasoningFeedRow,
+  ProductCatalogInsert,
+  InventoryStateInsert,
+  SalesHistoryInsert,
+  BriefingBlackboardRow,
+  BriefingBlackboardInsert,
+  BriefingBlackboardUpdate,
+  BriefingSectionRow,
+  BriefingSectionInsert,
+  BriefingSectionUpdate,
+  AuditChallenge,
 } from "./db/types.js";
 export { BUCKET_UPLOADS, BUCKET_OUTPUTS, DEFAULT_CSV_CONTENT_TYPE } from "./lib/constants.js";
 
@@ -71,6 +82,60 @@ export {
 } from "./analytics/fact-bundle.js";
 
 export {
+  extractInventoryData,
+  extractInventoryDataWithPeriods,
+  extractMgoRating,
+  type InventoryExtraction,
+} from "./analytics/inventory-extractor.js";
+
+export {
+  calculateReorderRecommendations,
+  getSellThroughAnalysis,
+  daysOfCover,
+  assessCoverRisk as assessInventoryCoverRisk,
+  detectRevenueVsTrendConflict,
+  type ReorderRecommendation as InventoryReorderRecommendation,
+  type SpecialCaseFlag,
+} from "./analytics/inventory-metrics.js";
+
+export {
+  rankReorders,
+  categorizeByConflict,
+  type CategorizedRecommendations,
+} from "./analytics/reorder-ranker.js";
+
+export * as inventory from "./services/inventory.js";
+
+export {
+  createBlackboard,
+  submitAnalystDraft,
+  submitAuditorChallenges,
+  submitAnalystResponses,
+  finalizeAuditorDecisions,
+  getBlackboard,
+  listSections,
+  getSection,
+  type AnalystSection,
+  type AuditorReview,
+  type AnalystSectionResponse,
+  type AuditorFinalDecision,
+  type FinalizeResult,
+} from "./services/briefing-blackboard.js";
+
+export {
+  getSectionsByStatus,
+  getApprovedSections,
+  getEscalatedSections,
+  getPendingSections,
+  getPublicSectionSummaries,
+  getConflictsForCEO,
+  getSectionDetail,
+  type SectionSummary,
+  type ConflictDetail,
+  type SectionDetail,
+} from "./services/briefing-section.js";
+
+export {
   runBriefingWorkflow,
   isWorkflowApproved,
 } from "./agents/orchestration.js";
@@ -82,10 +147,10 @@ export {
 } from "./services/briefing.js";
 
 export type {
-  BriefingDraft,
-  AuditResult,
+  AnalystDraftedSection,
+  AuditorChallenge,
+  AuditorSectionReview,
+  AnalystResponseToChallenge,
   BriefingState,
-  Change,
-  BriefingSection,
   ApprovedBriefing,
 } from "./agents/types.js";

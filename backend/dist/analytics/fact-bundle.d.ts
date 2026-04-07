@@ -5,6 +5,7 @@
  */
 import type { CommercialDataRow } from "./csv-parser.js";
 import { type SkuMonthMetrics, type SkuTrend, type SkuCoverRisk, type SkuValueAtRisk } from "./metrics.js";
+import type { ReorderRecommendation as InventoryReorderRecommendation, SpecialCaseFlag } from "./inventory-metrics.js";
 /**
  * Reorder recommendation with structured rationale.
  */
@@ -52,6 +53,20 @@ export type FactBundle = {
         readonly totalUnitssSold: number;
         readonly highRiskSkus: number;
         readonly decliningSku: number;
+    };
+    readonly inventoryAnalysis?: {
+        readonly reorderRecommendations: readonly InventoryReorderRecommendation[];
+        readonly sellThroughAnalysis: {
+            readonly topPerformers: readonly string[];
+            readonly poorPerformers: readonly string[];
+            readonly decliners: readonly string[];
+        };
+        readonly coverRisks: {
+            readonly critical: readonly string[];
+            readonly high: readonly string[];
+            readonly medium: readonly string[];
+        };
+        readonly specialCases: readonly SpecialCaseFlag[];
     };
 };
 /**

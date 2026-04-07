@@ -1,15 +1,20 @@
 import type { BriefingState } from "./types.js";
+import type { SupabaseAdminClient } from "../supabase/admin-client.js";
 import type { Env } from "../env.js";
 /**
- * Simple graph executor: Runs Analyst → Auditor with max 2 iterations.
- * No external StateGraph dependency - pure orchestration logic.
- *
+ * Blackboard pattern graph executor: Section-level collaboration.
  * Flow:
- *   START → Analyst (generate draft)
- *        → Auditor (verify draft)
- *        → Router (approved? → FINALIZE : continue)
- *        → [if revise] back to Analyst with feedback
- *        → [if max iterations] FAIL
+ *   START → Create Blackboard
+ *        → Analyst (generate 5 sections)
+ *        → Submit Analyst Draft
+ *        → Auditor (review 5 sections)
+ *        → Submit Auditor Challenges
+ *        → Router (any challenged? → continue : finalize)
+ *        → Analyst Response (respond to challenges)
+ *        → Submit Analyst Responses
+ *        → Auditor Finalizer (make final calls)
+ *        → Finalize Decisions
+ *        → [max 2 iterations]
  */
-export declare function executeGraph(initialState: BriefingState, env: Env): Promise<BriefingState>;
+export declare function executeGraph(initialState: BriefingState, env: Env, client?: SupabaseAdminClient): Promise<BriefingState>;
 //# sourceMappingURL=graph.d.ts.map

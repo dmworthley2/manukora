@@ -17,6 +17,10 @@ import {
   type SkuCoverRisk,
   type SkuValueAtRisk,
 } from "./metrics.js";
+import type {
+  ReorderRecommendation as InventoryReorderRecommendation,
+  SpecialCaseFlag,
+} from "./inventory-metrics.js";
 
 /**
  * Reorder recommendation with structured rationale.
@@ -67,6 +71,20 @@ export type FactBundle = {
     readonly totalUnitssSold: number;
     readonly highRiskSkus: number;
     readonly decliningSku: number;
+  };
+  readonly inventoryAnalysis?: {
+    readonly reorderRecommendations: readonly InventoryReorderRecommendation[];
+    readonly sellThroughAnalysis: {
+      readonly topPerformers: readonly string[]; // top 5 SKUs by M4 sales
+      readonly poorPerformers: readonly string[]; // bottom 5
+      readonly decliners: readonly string[]; // 3+ month declining trend
+    };
+    readonly coverRisks: {
+      readonly critical: readonly string[]; // < 10 days cover
+      readonly high: readonly string[]; // 10–20 days cover
+      readonly medium: readonly string[]; // 20–60 days cover
+    };
+    readonly specialCases: readonly SpecialCaseFlag[];
   };
 };
 

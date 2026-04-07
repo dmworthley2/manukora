@@ -1,6 +1,6 @@
 export { loadEnv, type Env } from "./env.js";
 export { createSupabaseAdminClient, type SupabaseAdminClient } from "./supabase/admin-client.js";
-export type { Database, Json, UploadRow, ReportRunRow, ReportRunStatus, } from "./db/types.js";
+export type { Database, Json, UploadRow, ReportRunRow, ReportRunStatus, AgentReasoningFeedRow, ProductCatalogInsert, InventoryStateInsert, SalesHistoryInsert, BriefingBlackboardRow, BriefingBlackboardInsert, BriefingBlackboardUpdate, BriefingSectionRow, BriefingSectionInsert, BriefingSectionUpdate, AuditChallenge, } from "./db/types.js";
 export { BUCKET_UPLOADS, BUCKET_OUTPUTS, DEFAULT_CSV_CONTENT_TYPE } from "./lib/constants.js";
 export { uploadCsv, getUploadRecord, listUploads, downloadCsv, type UploadCsvMeta, type ListUploadsOptions, } from "./services/uploads.js";
 export { createReportRun, finalizeRun, saveReportArtifact, listOutputsForRun, getReportDownloadUrl, getReportRun, listReportRuns, updateReportRunStatus, type CreateReportRunInput, type FinalizeRunArtifacts, type ListOutputsResult, type GetReportDownloadUrlInput, type ListReportRunsOptions, } from "./services/reports.js";
@@ -8,7 +8,13 @@ export { processCsv, inferFieldMapping, type CsvProcessorOptions, type CsvProces
 export { parseCommercialRows, detectDuplicates, type CommercialDataRow, type CsvFieldMapping, type CsvParseError, } from "./analytics/csv-parser.js";
 export { computeMonthMetrics, analyzeTrend, assessCoverRisk, computeValueAtRisk, groupBySku, rankByValueAtRisk, type SkuMonthMetrics, type SkuTrend, type SkuCoverRisk, type SkuValueAtRisk, } from "./analytics/metrics.js";
 export { buildFactBundle, type FactBundle, type ReorderRecommendation, type ProactiveRisk, } from "./analytics/fact-bundle.js";
+export { extractInventoryData, extractInventoryDataWithPeriods, extractMgoRating, type InventoryExtraction, } from "./analytics/inventory-extractor.js";
+export { calculateReorderRecommendations, getSellThroughAnalysis, daysOfCover, assessCoverRisk as assessInventoryCoverRisk, detectRevenueVsTrendConflict, type ReorderRecommendation as InventoryReorderRecommendation, type SpecialCaseFlag, } from "./analytics/inventory-metrics.js";
+export { rankReorders, categorizeByConflict, type CategorizedRecommendations, } from "./analytics/reorder-ranker.js";
+export * as inventory from "./services/inventory.js";
+export { createBlackboard, submitAnalystDraft, submitAuditorChallenges, submitAnalystResponses, finalizeAuditorDecisions, getBlackboard, listSections, getSection, type AnalystSection, type AuditorReview, type AnalystSectionResponse, type AuditorFinalDecision, type FinalizeResult, } from "./services/briefing-blackboard.js";
+export { getSectionsByStatus, getApprovedSections, getEscalatedSections, getPendingSections, getPublicSectionSummaries, getConflictsForCEO, getSectionDetail, type SectionSummary, type ConflictDetail, type SectionDetail, } from "./services/briefing-section.js";
 export { runBriefingWorkflow, isWorkflowApproved, } from "./agents/orchestration.js";
 export { finalizeBriefing, saveBriefingToStorage, updateReportRunWithBriefing, } from "./services/briefing.js";
-export type { BriefingDraft, AuditResult, BriefingState, Change, BriefingSection, ApprovedBriefing, } from "./agents/types.js";
+export type { AnalystDraftedSection, AuditorChallenge, AuditorSectionReview, AnalystResponseToChallenge, BriefingState, ApprovedBriefing, } from "./agents/types.js";
 //# sourceMappingURL=index.d.ts.map

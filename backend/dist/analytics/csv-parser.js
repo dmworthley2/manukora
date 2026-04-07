@@ -12,6 +12,12 @@ const CommercialRowSchema = z.object({
     retailPrice: z.number().positive("Retail price must be positive"),
     cogs: z.number().nonnegative("COGS must be non-negative").nullable(),
     inbound: z.number().nonnegative("Inbound must be non-negative").nullable(),
+    stockOnHand: z.number().nonnegative("Stock on hand must be non-negative").nullable().optional(),
+    unitsOnOrder: z.number().nonnegative("Units on order must be non-negative").nullable().optional(),
+    orderArrivalMonths: z.number().nonnegative("Order arrival months must be non-negative").nullable().optional(),
+    targetMonthsCover: z.number().nonnegative("Target months cover must be non-negative").nullable().optional(),
+    productCategory: z.string().optional(),
+    channel: z.string().optional(),
 });
 /**
  * Parse raw CSV rows into typed CommercialDataRow array.
@@ -50,6 +56,12 @@ function parseRow(raw, mapping) {
         retailPrice: coerceNumber(raw[mapping.retailPrice]),
         cogs: mapping.cogs ? coerceNumber(raw[mapping.cogs]) : null,
         inbound: mapping.inbound ? coerceNumber(raw[mapping.inbound]) : null,
+        stockOnHand: mapping.stockOnHand ? coerceNumber(raw[mapping.stockOnHand]) : undefined,
+        unitsOnOrder: mapping.unitsOnOrder ? coerceNumber(raw[mapping.unitsOnOrder]) : undefined,
+        orderArrivalMonths: mapping.orderArrivalMonths ? coerceNumber(raw[mapping.orderArrivalMonths]) : undefined,
+        targetMonthsCover: mapping.targetMonthsCover ? coerceNumber(raw[mapping.targetMonthsCover]) : undefined,
+        productCategory: mapping.productCategory ? raw[mapping.productCategory] : undefined,
+        channel: mapping.channel ? raw[mapping.channel] : undefined,
     };
     const result = CommercialRowSchema.safeParse(coerced);
     if (!result.success) {
@@ -81,6 +93,49 @@ function coerceNumber(value) {
         return null;
     const num = parseFloat(value);
     return isNaN(num) ? null : num;
+}
+/**
+ * Infer field mapping from CSV headers.
+ * Uses case-insensitive matching against known aliases.
+ */
+export function inferFieldMapping(headers) {
+    const findField = (aliases) => {
+        const lower = aliases.map(a => a.toLowerCase());
+        return headers.find(h => lower.includes(h.toLowerCase()));
+    };
+    // Required fields
+    const sku = findField(["sku", "product_sku"]);
+    const period = findField(["period", "month", "date"]);
+    const unitsSold = findField(["units_sold", "units_ordered", "qty_sold"]);
+    const revenue = findField(["revenue", "sales", "total_sales"]);
+    const onHandInventory = findField(["on_hand_inventory", "inventory", "stock"]);
+    const retailPrice = findField(["retail_price", "price", "unit_price"]);
+    if (!sku || !period || !unitsSold || !revenue || !onHandInventory || !retailPrice) {
+        return null;
+    }
+    // Optional fields
+    const stockOnHandAliases = ["stock_on_hand", "stock_on_hand", "warehouse_qty"];
+    const unitsOnOrderAliases = ["units_on_order", "on_order", "pending_order"];
+    const orderArrivalMonthsAliases = ["order_arrival_months", "arrival_months", "lead_time_months"];
+    const targetMonthsCoverAliases = ["target_months_cover", "target_cover", "cover_target"];
+    const productCategoryAliases = ["product_category", "category", "product_line"];
+    const channelAliases = ["channel", "sales_channel", "platform"];
+    return {
+        sku,
+        period,
+        unitsSold,
+        revenue,
+        onHandInventory,
+        retailPrice,
+        cogs: findField(["cogs", "cost_of_goods_sold"]),
+        inbound: findField(["inbound", "on_order_qty"]),
+        stockOnHand: findField(stockOnHandAliases),
+        unitsOnOrder: findField(unitsOnOrderAliases),
+        orderArrivalMonths: findField(orderArrivalMonthsAliases),
+        targetMonthsCover: findField(targetMonthsCoverAliases),
+        productCategory: findField(productCategoryAliases),
+        channel: findField(channelAliases),
+    };
 }
 /**
  * Detect duplicate (SKU, period) keys in parsed rows.

@@ -17,6 +17,12 @@ export type CsvFieldMapping = {
     readonly retailPrice: string;
     readonly cogs?: string;
     readonly inbound?: string;
+    readonly stockOnHand?: string;
+    readonly unitsOnOrder?: string;
+    readonly orderArrivalMonths?: string;
+    readonly targetMonthsCover?: string;
+    readonly productCategory?: string;
+    readonly channel?: string;
 };
 /**
  * Parsed and coerced commercial data row.
@@ -31,6 +37,12 @@ export type CommercialDataRow = {
     readonly retailPrice: number;
     readonly cogs: number | null;
     readonly inbound: number | null;
+    readonly stockOnHand?: number;
+    readonly unitsOnOrder?: number;
+    readonly orderArrivalMonths?: number;
+    readonly targetMonthsCover?: number;
+    readonly productCategory?: string;
+    readonly channel?: string;
 };
 /** CSV parsing error with row context. */
 export type CsvParseError = {
@@ -50,6 +62,11 @@ export type ParseResult = {
  * This is fail-closed: if errors exist, the rows array is undefined.
  */
 export declare function parseCommercialRows(rawRows: readonly RawCsvRow[], mapping: CsvFieldMapping): ParseResult;
+/**
+ * Infer field mapping from CSV headers.
+ * Uses case-insensitive matching against known aliases.
+ */
+export declare function inferFieldMapping(headers: readonly string[]): CsvFieldMapping | null;
 /**
  * Detect duplicate (SKU, period) keys in parsed rows.
  * Returns array of (SKU, period, rowIndices) for duplicates.

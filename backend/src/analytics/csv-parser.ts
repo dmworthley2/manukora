@@ -21,6 +21,13 @@ export type CsvFieldMapping = {
   readonly retailPrice: string;
   readonly cogs?: string;
   readonly inbound?: string;
+  // Inventory fields (optional)
+  readonly stockOnHand?: string;
+  readonly unitsOnOrder?: string;
+  readonly orderArrivalMonths?: string;
+  readonly targetMonthsCover?: string;
+  readonly productCategory?: string;
+  readonly channel?: string;
 };
 
 /**
@@ -36,6 +43,13 @@ export type CommercialDataRow = {
   readonly retailPrice: number;
   readonly cogs: number | null;
   readonly inbound: number | null;
+  // Inventory fields (optional)
+  readonly stockOnHand?: number;
+  readonly unitsOnOrder?: number;
+  readonly orderArrivalMonths?: number;
+  readonly targetMonthsCover?: number;
+  readonly productCategory?: string;
+  readonly channel?: string;
 };
 
 /** CSV parsing error with row context. */
@@ -61,6 +75,12 @@ const CommercialRowSchema = z.object({
   retailPrice: z.number().positive("Retail price must be positive"),
   cogs: z.number().nonnegative("COGS must be non-negative").nullable(),
   inbound: z.number().nonnegative("Inbound must be non-negative").nullable(),
+  stockOnHand: z.number().nonnegative("Stock on hand must be non-negative").nullable().optional(),
+  unitsOnOrder: z.number().nonnegative("Units on order must be non-negative").nullable().optional(),
+  orderArrivalMonths: z.number().nonnegative("Order arrival months must be non-negative").nullable().optional(),
+  targetMonthsCover: z.number().nonnegative("Target months cover must be non-negative").nullable().optional(),
+  productCategory: z.string().optional(),
+  channel: z.string().optional(),
 });
 
 /**
@@ -83,12 +103,12 @@ export function parseCommercialRows(
     if (!parsed.ok) {
       errors.push({
         rowIndex: i + 1, // 1-indexed for user-facing error messages
-        ...parsed.error,
+        ...(parsed as { ok: false; error: Omit<CsvParseError, "rowIndex"> }).error,
       });
       continue;
     }
 
-    rows.push(parsed.data);
+    rows.push((parsed as { ok: true; data: CommercialDataRow }).data);
   }
 
   if (errors.length > 0) {
@@ -111,6 +131,12 @@ function parseRow(
     retailPrice: coerceNumber(raw[mapping.retailPrice]),
     cogs: mapping.cogs ? coerceNumber(raw[mapping.cogs]) : null,
     inbound: mapping.inbound ? coerceNumber(raw[mapping.inbound]) : null,
+    stockOnHand: mapping.stockOnHand ? coerceNumber(raw[mapping.stockOnHand]) : undefined,
+    unitsOnOrder: mapping.unitsOnOrder ? coerceNumber(raw[mapping.unitsOnOrder]) : undefined,
+    orderArrivalMonths: mapping.orderArrivalMonths ? coerceNumber(raw[mapping.orderArrivalMonths]) : undefined,
+    targetMonthsCover: mapping.targetMonthsCover ? coerceNumber(raw[mapping.targetMonthsCover]) : undefined,
+    productCategory: mapping.productCategory ? raw[mapping.productCategory] : undefined,
+    channel: mapping.channel ? raw[mapping.channel] : undefined,
   };
 
   const result = CommercialRowSchema.safeParse(coerced);
@@ -137,13 +163,61 @@ function parseRow(
     };
   }
 
-  return { ok: true, data: result.data };
+  return { ok: true, data: result.data as CommercialDataRow };
 }
 
 function coerceNumber(value: string | undefined): number | null {
   if (value === undefined || value === "") return null;
   const num = parseFloat(value);
   return isNaN(num) ? null : num;
+}
+
+/**
+ * Infer field mapping from CSV headers.
+ * Uses case-insensitive matching against known aliases.
+ */
+export function inferFieldMapping(headers: readonly string[]): CsvFieldMapping | null {
+  const findField = (aliases: readonly string[]): string | undefined => {
+    const lower = aliases.map(a => a.toLowerCase());
+    return headers.find(h => lower.includes(h.toLowerCase()));
+  };
+
+  // Required fields
+  const sku = findField(["sku", "product_sku"]);
+  const period = findField(["period", "month", "date"]);
+  const unitsSold = findField(["units_sold", "units_ordered", "qty_sold"]);
+  const revenue = findField(["revenue", "sales", "total_sales"]);
+  const onHandInventory = findField(["on_hand_inventory", "inventory", "stock"]);
+  const retailPrice = findField(["retail_price", "price", "unit_price"]);
+
+  if (!sku || !period || !unitsSold || !revenue || !onHandInventory || !retailPrice) {
+    return null;
+  }
+
+  // Optional fields
+  const stockOnHandAliases = ["stock_on_hand", "stock_on_hand", "warehouse_qty"];
+  const unitsOnOrderAliases = ["units_on_order", "on_order", "pending_order"];
+  const orderArrivalMonthsAliases = ["order_arrival_months", "arrival_months", "lead_time_months"];
+  const targetMonthsCoverAliases = ["target_months_cover", "target_cover", "cover_target"];
+  const productCategoryAliases = ["product_category", "category", "product_line"];
+  const channelAliases = ["channel", "sales_channel", "platform"];
+
+  return {
+    sku,
+    period,
+    unitsSold,
+    revenue,
+    onHandInventory,
+    retailPrice,
+    cogs: findField(["cogs", "cost_of_goods_sold"]),
+    inbound: findField(["inbound", "on_order_qty"]),
+    stockOnHand: findField(stockOnHandAliases),
+    unitsOnOrder: findField(unitsOnOrderAliases),
+    orderArrivalMonths: findField(orderArrivalMonthsAliases),
+    targetMonthsCover: findField(targetMonthsCoverAliases),
+    productCategory: findField(productCategoryAliases),
+    channel: findField(channelAliases),
+  };
 }
 
 /**

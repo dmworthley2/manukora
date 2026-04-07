@@ -6,6 +6,7 @@ const envSchema = z.object({
     LLM_MODEL: z.string().default("claude-3-5-haiku-20241022"),
     LLM_TEMPERATURE: z.coerce.number().min(0).max(1).default(0.3),
 });
+// Force rebuild: 2026-04-07
 /** Validate process.env for server-side Supabase admin usage and LLM agents. Call once at process startup. */
 export function loadEnv(overrides) {
     const source = { ...process.env, ...overrides };

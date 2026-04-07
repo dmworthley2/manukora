@@ -1,11 +1,16 @@
 /**
  * Trigger briefing workflow asynchronously.
  * Imports dynamically to avoid runtime deps on backend at Next.js build time.
+ * @param reportRunId - Report run ID for finalization
+ * @param factBundle - Processed fact bundle with inventory analysis
+ * @param period - Analysis period (YYYY-MM)
+ * @param inventoryReasoningFeed - Optional agent reasoning feed for inventory context
  */
 async function triggerBriefingWorkflow(
   reportRunId: string,
   factBundle: unknown,
   period: string,
+  inventoryReasoningFeed: unknown = null,
 ): Promise<void> {
   const { runBriefingWorkflow, finalizeBriefing, loadEnv, createSupabaseAdminClient } =
     await import("@manukora/backend");
@@ -15,7 +20,14 @@ async function triggerBriefingWorkflow(
     const client = createSupabaseAdminClient(env);
 
     // Run the briefing workflow (sync, with 5-min timeout internally)
-    const state = await runBriefingWorkflow(factBundle as never, reportRunId, period, env);
+    // Pass inventory reasoning feed as context for agent prompts
+    const state = await runBriefingWorkflow(
+      factBundle as never,
+      reportRunId,
+      period,
+      env,
+      inventoryReasoningFeed,
+    );
 
     // Save artifacts and update report_runs
     await finalizeBriefing(client, reportRunId, state);
@@ -36,6 +48,8 @@ export async function POST(req: Request) {
       finalizeRun,
       loadEnv,
       uploadCsv,
+      extractInventoryData,
+      inventory,
     } = await import("@manukora/backend");
 
     const formData = await req.formData();
@@ -84,6 +98,44 @@ export async function POST(req: Request) {
       contentType: file.type || "text/csv",
     });
 
+    // Extract and store inventory data
+    // This is optional; log warnings but don't fail the upload if inventory parsing fails
+    let inventoryReasoningFeed = null;
+    const inventoryWarnings: string[] = [];
+
+    if (result.success && result.rows) {
+      try {
+        const inventoryData = extractInventoryData(result.rows, fieldMapping);
+
+        // Insert into database
+        const catalogResult = await inventory.upsertProductCatalog(client, inventoryData.products);
+        if (!catalogResult.success) {
+          inventoryWarnings.push(`Product catalog insert failed: ${catalogResult.error}`);
+        }
+
+        const inventoryResult = await inventory.upsertInventoryState(
+          client,
+          inventoryData.inventoryState,
+        );
+        if (!inventoryResult.success) {
+          inventoryWarnings.push(`Inventory state insert failed: ${inventoryResult.error}`);
+        }
+
+        const salesResult = await inventory.insertSalesHistory(client, inventoryData.salesHistory);
+        if (!salesResult.success) {
+          inventoryWarnings.push(`Sales history insert failed: ${salesResult.error}`);
+        }
+
+        // Query reasoning feed for agent use
+        inventoryReasoningFeed = await inventory.queryAgentReasoningFeed(client);
+      } catch (err) {
+        // Log warning but don't fail the upload
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn("Inventory parsing failed:", message);
+        inventoryWarnings.push(`Inventory parsing failed: ${message}`);
+      }
+    }
+
     const reportRun = await createReportRun(client, {
       period,
       uploadId: uploadRow.id,
@@ -92,6 +144,7 @@ export async function POST(req: Request) {
         rowCount: result.rows?.length || 0,
         uniqueSkus: result.factBundle?.metadata.uniqueSkus || 0,
         recommendationCount: result.factBundle?.reorderRecommendations.length || 0,
+        inventoryDataInserted: inventoryReasoningFeed !== null,
       },
     });
 
@@ -103,9 +156,10 @@ export async function POST(req: Request) {
     }
 
     // Trigger briefing workflow asynchronously (fire-and-forget)
+    // Pass inventory reasoning feed to the workflow
     if (result.factBundle) {
-      triggerBriefingWorkflow(reportRun.id, result.factBundle, period)
-        .catch(err => console.error("Briefing workflow error:", err));
+      triggerBriefingWorkflow(reportRun.id, result.factBundle, period, inventoryReasoningFeed)
+        .catch((err) => console.error("Briefing workflow error:", err));
     }
 
     return Response.json(
@@ -114,7 +168,8 @@ export async function POST(req: Request) {
         reportRunId: reportRun.id,
         uploadId: uploadRow.id,
         factBundle: result.factBundle,
-        warnings: result.warnings,
+        warnings: [...(result.warnings || []), ...inventoryWarnings],
+        inventoryDataInserted: inventoryReasoningFeed !== null,
       },
       { status: 201 },
     );
