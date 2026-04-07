@@ -98,7 +98,10 @@ export function DatasetHistory({
                 >
                   Analyze
                 </Button>
-                <button className="p-1 hover:bg-muted rounded">
+                <button
+                  className="p-1 hover:bg-muted rounded"
+                  aria-label={`View details for ${upload.original_filename}`}
+                >
                   <Eye className="w-4 h-4" />
                 </button>
               </TableCell>
