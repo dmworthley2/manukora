@@ -147,7 +147,10 @@ export function detectDuplicates(rows) {
         const row = rows[i];
         if (!row)
             continue;
-        const key = `${row.sku}|${row.period}`;
+        // Include channel in key if present (for multi-channel data)
+        // Same SKU in same period but different channels is NOT a duplicate
+        const channel = row.channel ? `|${row.channel}` : "";
+        const key = `${row.sku}|${row.period}${channel}`;
         if (!seen.has(key)) {
             seen.set(key, []);
         }
@@ -156,8 +159,10 @@ export function detectDuplicates(rows) {
     const duplicates = Array.from(seen.entries())
         .filter(([, indices]) => indices.length > 1)
         .map(([key, indices]) => {
-        const [sku, period] = key.split("|");
-        return { sku: sku || "", period: period || "", rowIndices: indices };
+        const parts = key.split("|");
+        const sku = parts[0] || "";
+        const period = parts[1] || "";
+        return { sku, period, rowIndices: indices };
     });
     return duplicates;
 }

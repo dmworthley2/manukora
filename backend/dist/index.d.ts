@@ -8,7 +8,7 @@ export { processCsv, inferFieldMapping, type CsvProcessorOptions, type CsvProces
 export { parseCommercialRows, detectDuplicates, type CommercialDataRow, type CsvFieldMapping, type CsvParseError, } from "./analytics/csv-parser.js";
 export { computeMonthMetrics, analyzeTrend, assessCoverRisk, computeValueAtRisk, groupBySku, rankByValueAtRisk, type SkuMonthMetrics, type SkuTrend, type SkuCoverRisk, type SkuValueAtRisk, } from "./analytics/metrics.js";
 export { buildFactBundle, type FactBundle, type ReorderRecommendation, type ProactiveRisk, } from "./analytics/fact-bundle.js";
-export { extractInventoryData, extractInventoryDataWithPeriods, extractMgoRating, type InventoryExtraction, } from "./analytics/inventory-extractor.js";
+export { extractInventoryData, extractInventoryDataWithUploadId, extractInventoryDataWithPeriods, extractMgoRating, type InventoryExtraction, } from "./analytics/inventory-extractor.js";
 export { calculateReorderRecommendations, getSellThroughAnalysis, daysOfCover, assessCoverRisk as assessInventoryCoverRisk, detectRevenueVsTrendConflict, type ReorderRecommendation as InventoryReorderRecommendation, type SpecialCaseFlag, } from "./analytics/inventory-metrics.js";
 export { rankReorders, categorizeByConflict, type CategorizedRecommendations, } from "./analytics/reorder-ranker.js";
 export * as inventory from "./services/inventory.js";

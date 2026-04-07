@@ -83,6 +83,7 @@ export {
 
 export {
   extractInventoryData,
+  extractInventoryDataWithUploadId,
   extractInventoryDataWithPeriods,
   extractMgoRating,
   type InventoryExtraction,

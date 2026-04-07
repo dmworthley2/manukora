@@ -137,6 +137,23 @@ _fieldMapping) {
     };
 }
 /**
+ * Extract inventory data with upload ID tracking.
+ * Adds upload_id to all records to support multiple uploads of the same SKU.
+ *
+ * @param rows - Parsed commercial CSV rows
+ * @param fieldMapping - Field mapping configuration
+ * @param uploadId - Unique upload identifier
+ * @returns InventoryExtraction with upload_id added to all records
+ */
+export function extractInventoryDataWithUploadId(rows, fieldMapping, uploadId) {
+    const extraction = extractInventoryData(rows, fieldMapping);
+    return {
+        products: extraction.products.map(p => ({ ...p, upload_id: uploadId })),
+        inventoryState: extraction.inventoryState.map(i => ({ ...i, upload_id: uploadId })),
+        salesHistory: extraction.salesHistory.map(s => ({ ...s, upload_id: uploadId })),
+    };
+}
+/**
  * Extract relative month number (1–4) from ISO period string.
  * Maps to the known 4-month window:
  * - "2025-12" → 1 (M1, oldest)

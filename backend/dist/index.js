@@ -7,7 +7,7 @@ export { processCsv, inferFieldMapping, } from "./services/csv-processor.js";
 export { parseCommercialRows, detectDuplicates, } from "./analytics/csv-parser.js";
 export { computeMonthMetrics, analyzeTrend, assessCoverRisk, computeValueAtRisk, groupBySku, rankByValueAtRisk, } from "./analytics/metrics.js";
 export { buildFactBundle, } from "./analytics/fact-bundle.js";
-export { extractInventoryData, extractInventoryDataWithPeriods, extractMgoRating, } from "./analytics/inventory-extractor.js";
+export { extractInventoryData, extractInventoryDataWithUploadId, extractInventoryDataWithPeriods, extractMgoRating, } from "./analytics/inventory-extractor.js";
 export { calculateReorderRecommendations, getSellThroughAnalysis, daysOfCover, assessCoverRisk as assessInventoryCoverRisk, detectRevenueVsTrendConflict, } from "./analytics/inventory-metrics.js";
 export { rankReorders, categorizeByConflict, } from "./analytics/reorder-ranker.js";
 export * as inventory from "./services/inventory.js";

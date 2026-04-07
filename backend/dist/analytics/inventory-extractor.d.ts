@@ -14,6 +14,21 @@ export type InventoryExtraction = {
     readonly salesHistory: readonly SalesHistoryInsert[];
 };
 /**
+ * Extended inventory data with upload tracking.
+ * Includes upload_id in composite keys to support multiple uploads of same SKU.
+ */
+export type InventoryExtractionWithUploadId = {
+    readonly products: readonly (ProductCatalogInsert & {
+        readonly upload_id: string;
+    })[];
+    readonly inventoryState: readonly (InventoryStateInsert & {
+        readonly upload_id: string;
+    })[];
+    readonly salesHistory: readonly (SalesHistoryInsert & {
+        readonly upload_id: string;
+    })[];
+};
+/**
  * Extract product info from CSV row headers (name, category, mgo_rating).
  * Regex patterns to detect Manuka honey MGO ratings:
  * - "Manuka Honey MGO 514+ 500g" → mgo_rating = 514
@@ -38,6 +53,16 @@ export declare function extractMgoRating(productName: string): number | null;
  * @returns InventoryExtraction with products, inventoryState, and salesHistory
  */
 export declare function extractInventoryData(rows: readonly CommercialDataRow[], _fieldMapping: CsvFieldMapping): InventoryExtraction;
+/**
+ * Extract inventory data with upload ID tracking.
+ * Adds upload_id to all records to support multiple uploads of the same SKU.
+ *
+ * @param rows - Parsed commercial CSV rows
+ * @param fieldMapping - Field mapping configuration
+ * @param uploadId - Unique upload identifier
+ * @returns InventoryExtraction with upload_id added to all records
+ */
+export declare function extractInventoryDataWithUploadId(rows: readonly CommercialDataRow[], fieldMapping: CsvFieldMapping, uploadId: string): InventoryExtractionWithUploadId;
 /**
  * Enhanced version of extractInventoryData that accepts a pre-sorted period list.
  * Allows accurate month_period assignment (1–4) based on data window.

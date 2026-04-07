@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       finalizeRun,
       loadEnv,
       uploadCsv,
-      extractInventoryData,
+      extractInventoryDataWithUploadId,
       inventory,
       calculateReorderRecommendations,
       getSellThroughAnalysis,
@@ -137,7 +137,7 @@ export async function POST(req: Request) {
 
     if (result.success && result.rows) {
       try {
-        const inventoryData = extractInventoryData(result.rows, fieldMapping);
+        const inventoryData = extractInventoryDataWithUploadId(result.rows, fieldMapping, uploadRow.id);
 
         // Insert into database
         const catalogResult = await inventory.upsertProductCatalog(client, inventoryData.products);
