@@ -1,5 +1,3 @@
-"use client";
-
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardNav } from "@/components/dashboard/nav";
@@ -12,6 +10,7 @@ interface DashboardLayoutProps {
  * DashboardLayout
  * Provides the fixed shell with header and navigation for all dashboard pages.
  * Uses shadcn Button component for consistency.
+ * Server Component to avoid SSR issues during static prerendering.
  */
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (

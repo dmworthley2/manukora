@@ -8,4 +8,7 @@ export { processCsv, inferFieldMapping, type CsvProcessorOptions, type CsvProces
 export { parseCommercialRows, detectDuplicates, type CommercialDataRow, type CsvFieldMapping, type CsvParseError, } from "./analytics/csv-parser.js";
 export { computeMonthMetrics, analyzeTrend, assessCoverRisk, computeValueAtRisk, groupBySku, rankByValueAtRisk, type SkuMonthMetrics, type SkuTrend, type SkuCoverRisk, type SkuValueAtRisk, } from "./analytics/metrics.js";
 export { buildFactBundle, type FactBundle, type ReorderRecommendation, type ProactiveRisk, } from "./analytics/fact-bundle.js";
+export { runBriefingWorkflow, isWorkflowApproved, } from "./agents/orchestration.js";
+export { finalizeBriefing, saveBriefingToStorage, updateReportRunWithBriefing, } from "./services/briefing.js";
+export type { BriefingDraft, AuditResult, BriefingState, Change, BriefingSection, ApprovedBriefing, } from "./agents/types.js";
 //# sourceMappingURL=index.d.ts.map
