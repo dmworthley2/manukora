@@ -106,20 +106,20 @@ export async function insertSalesHistory(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error, data } = await (client
       .from("sales_history")
-      .insert(sales as any[]) as any)
+      .upsert(sales as any[], { onConflict: "sku,channel,month_period,upload_id" }) as any)
       .select();
 
     if (error) {
-      log.error("sales_history.insert failed", { errorMessage: error.message });
+      log.error("sales_history.upsert failed", { errorMessage: error.message });
       return { success: false, count: 0, error: error.message };
     }
 
     const count = Array.isArray(data) ? data.length : 0;
-    log.info("sales_history inserted", { attempted: sales.length, inserted: count });
+    log.info("sales_history upserted", { attempted: sales.length, upserted: count });
     return { success: true, count };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error("sales_history.insert exception", { error: message });
+    log.error("sales_history.upsert exception", { error: message });
     return { success: false, count: 0, error: message };
   }
 }
