@@ -33,7 +33,7 @@ export async function upsertProductCatalog(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (client
       .from("product_catalog")
-      .upsert(products as any[], { onConflict: "sku" }) as any);
+      .upsert(products as any[], { onConflict: "sku,upload_id" }) as any);
 
     if (error) {
       log.error("product_catalog.upsert failed", { errorMessage: error.message });
