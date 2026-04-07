@@ -1,5 +1,6 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, RenderResult } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import React from "react";
 
 // Mock hooks before importing component
 jest.mock("@/hooks/useDatasetUpload", () => ({
@@ -18,12 +19,22 @@ jest.mock("@/hooks/useToast", () => ({
   })),
 }));
 
+jest.mock("@/contexts/DataSourceContext", () => ({
+  DataSourceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useDataSource: jest.fn(() => ({
+    hasUploadedData: false,
+    setHasUploadedData: jest.fn(),
+  })),
+}));
+
 import { UploadSection } from "@/components/data-sources/UploadSection";
 import * as useDatasetUploadModule from "@/hooks/useDatasetUpload";
 import * as useToastModule from "@/hooks/useToast";
+import * as DataSourceContextModule from "@/contexts/DataSourceContext";
 
 const mockUseDatasetUpload = useDatasetUploadModule.useDatasetUpload as jest.Mock;
 const mockUseToast = useToastModule.useToast as jest.Mock;
+const mockUseDataSource = DataSourceContextModule.useDataSource as jest.Mock;
 
 describe("UploadSection", () => {
   beforeEach(() => {
@@ -37,6 +48,10 @@ describe("UploadSection", () => {
     });
     mockUseToast.mockReturnValue({
       toast: jest.fn(),
+    });
+    mockUseDataSource.mockReturnValue({
+      hasUploadedData: false,
+      setHasUploadedData: jest.fn(),
     });
   });
 
@@ -68,7 +83,8 @@ describe("UploadSection", () => {
 
     render(<UploadSection />);
 
-    expect(screen.getByRole("button", { name: /uploading/i })).toBeDisabled();
+    expect(screen.getByText(/uploading/i)).toBeInTheDocument();
+    expect(screen.getByText(/please wait while your file is being processed/i)).toBeInTheDocument();
   });
 
   it("calls onUploadSuccess when upload completes", async () => {

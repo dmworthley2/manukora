@@ -151,9 +151,11 @@ export function UploadSection({ onUploadSuccess }: UploadSectionProps) {
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Uploading...</h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              {selectedFile?.name} • {(selectedFile!.size / 1024 / 1024).toFixed(2)} MB
-            </p>
+            {selectedFile && (
+              <p className="text-sm text-muted-foreground mb-6">
+                {selectedFile.name} • {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            )}
             <div className="text-sm text-muted-foreground">
               Please wait while your file is being processed
             </div>
