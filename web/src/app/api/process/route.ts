@@ -26,6 +26,7 @@ async function triggerBriefingWorkflow(
       reportRunId,
       period,
       env,
+      client,
       inventoryReasoningFeed,
     );
 
