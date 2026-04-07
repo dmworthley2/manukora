@@ -15,6 +15,7 @@ interface DashboardNavProps {
 }
 
 const NAV_ITEMS: readonly NavItem[] = [
+  { href: "/data-sources", label: "Data Sources", icon: "📁" },
   { href: "/dashboard", label: "Summary", icon: "📊" },
   { href: "/dashboard/sales", label: "Sales", icon: "📈" },
   { href: "/dashboard/inventory", label: "Inventory", icon: "📦" },
