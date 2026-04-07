@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#e3c278",
+                    "on-secondary-fixed-variant": "#48473c",
+                    "surface-container": "#f2eee4",
+                    "on-tertiary-fixed-variant": "#5a4303",
+                    "error-container": "#ffdad6",
+                    "surface": "#fdf9ef",
+                    "primary": "#775a00",
+                    "on-error": "#ffffff",
+                    "tertiary-fixed": "#ffdf9a",
+                    "outline": "#817660",
+                    "inverse-surface": "#31312a",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed-variant": "#5a4400",
+                    "on-secondary-fixed": "#1c1c13",
+                    "outline-variant": "#d3c5ab",
+                    "surface-tint": "#775a00",
+                    "on-background": "#1c1c16",
+                    "surface-bright": "#fdf9ef",
+                    "tertiary-fixed-dim": "#e4c378",
+                    "on-surface-variant": "#4f4632",
+                    "primary-fixed": "#ffdf97",
+                    "primary-container": "#f6be00",
+                    "secondary-container": "#e5e3d4",
+                    "on-error-container": "#93000a",
+                    "inverse-primary": "#f6be01",
+                    "on-primary-container": "#684f00",
+                    "surface-dim": "#dddad0",
+                    "secondary-fixed-dim": "#c9c7b8",
+                    "surface-container-high": "#ece8de",
+                    "surface-container-low": "#f7f3e9",
+                    "secondary-fixed": "#e5e3d4",
+                    "on-tertiary-container": "#664f0f",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-fixed": "#251a00",
+                    "on-primary-fixed": "#251a00",
+                    "background": "#fdf9ef",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary": "#5f5f53",
+                    "on-surface": "#1c1c16",
+                    "surface-container-highest": "#e6e2d8",
+                    "primary-fixed-dim": "#f6be01",
+                    "on-primary": "#ffffff",
+                    "tertiary": "#745b1b",
+                    "inverse-on-surface": "#f4f0e6",
+                    "surface-variant": "#e6e2d8",
+                    "on-secondary-container": "#666559"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Newsreader"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Manrope', sans-serif; }
+        .serif-italic { font-family: 'Newsreader', serif; font-style: italic; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#fdf9ef]/80 dark:bg-[#1c1c16]/80 backdrop-blur-md flex justify-between items-center px-6 h-16 w-full no-border tonal-shift-bg">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#775a00] cursor-pointer">menu</span>
+<h1 class="text-xl font-bold tracking-widest text-[#775a00] dark:text-[#f6be00] font-['Newsreader'] italic tracking-tight">PRECISION ORGANICS</h1>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant hidden md:block">S&amp;OP SYSTEM</span>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-highest border border-outline-variant/20">
+<img alt="User Profile" data-alt="professional portrait of a male data analyst in a clean minimalist laboratory office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjIC6eNkToX5H_EgV_B-cgRniIJAy3_EupqfA5nwqZrmiRqApxrnXT_43v8s5a3ZLZdMS6Zh8k9S53jTE6QyYWdSDUcHalILPjJopdkJwfWlifoawNQgqs2Xr2m6HEote1MoTRmkMYGfllLzGzn2a64mBbS6y3CR7kbFlZdHJ2Lg-RC4Fh3FhBcOcn0751PG6Fn9pAb1iN256WlOyMK054mLD3DnB5eevDP4KGu_UweIzTaQJXacyJGWeDOlMQBL6W4OUpq7cErSI"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-6xl mx-auto">
+<!-- Title Section -->
+<section class="mb-12">
+<span class="text-[10px] font-bold tracking-[0.2em] text-primary uppercase block mb-2">Systems &amp; Operations Planning</span>
+<h2 class="text-5xl font-['Newsreader'] italic font-medium tracking-tight text-on-surface">Data Sources</h2>
+</section>
+<!-- Upload & Connector Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
+<!-- Upload Area -->
+<div class="lg:col-span-8 group">
+<div class="relative bg-surface-container-low rounded-lg p-1 w-full aspect-[21/9] flex items-center justify-center border-2 border-dashed border-outline-variant/30 hover:border-primary/50 transition-all duration-500 overflow-hidden">
+<!-- Subtle Honey Texture Gradient Overlay -->
+<div class="absolute inset-0 bg-gradient-to-tr from-primary-container/5 to-transparent pointer-events-none"></div>
+<div class="text-center z-10 p-8">
+<div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-container-highest mb-6 group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-3xl text-primary">upload_file</span>
+</div>
+<h3 class="text-2xl font-['Newsreader'] italic text-on-surface mb-2">Upload New Data</h3>
+<p class="text-sm text-on-surface-variant max-w-xs mx-auto mb-6">Drag and drop your spreadsheet or click to browse clinical batch data.</p>
+<button class="bg-gradient-to-r from-primary to-primary-container text-on-primary px-8 py-3 rounded-sm font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/10 active:scale-95 transition-all">
+                            Select CSV File
+                        </button>
+</div>
+</div>
+</div>
+<!-- Connectors -->
+<div class="lg:col-span-4 flex flex-col gap-4">
+<div class="bg-surface-container-low p-6 rounded-lg flex items-center gap-4 hover:bg-surface-container-highest transition-colors cursor-pointer border-l-4 border-primary">
+<div class="w-12 h-12 bg-surface-container-highest flex items-center justify-center rounded-sm">
+<span class="material-symbols-outlined text-primary">hub</span>
+</div>
+<div>
+<h4 class="font-bold text-sm tracking-tight">Shopify API</h4>
+<p class="text-[11px] text-on-surface-variant uppercase tracking-wider">Direct Sync Connected</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-lg flex items-center gap-4 hover:bg-surface-container-highest transition-colors cursor-pointer">
+<div class="w-12 h-12 bg-surface-container-highest flex items-center justify-center rounded-sm">
+<span class="material-symbols-outlined text-primary">inventory_2</span>
+</div>
+<div>
+<h4 class="font-bold text-sm tracking-tight">Cin7 Core</h4>
+<p class="text-[11px] text-on-surface-variant uppercase tracking-wider">Inventory Ledger</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-lg flex items-center gap-4 hover:bg-surface-container-highest transition-colors cursor-pointer">
+<div class="w-12 h-12 bg-surface-container-highest flex items-center justify-center rounded-sm">
+<span class="material-symbols-outlined text-primary">science</span>
+</div>
+<div>
+<h4 class="font-bold text-sm tracking-tight">Laboratory XLS</h4>
+<p class="text-[11px] text-on-surface-variant uppercase tracking-wider">MGO/UMF Potency Data</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Dataset History -->
+<section>
+<div class="flex justify-between items-end mb-8">
+<div>
+<h3 class="text-3xl font-['Newsreader'] italic text-on-surface">Dataset History</h3>
+<p class="text-sm text-on-surface-variant mt-1">Audit trail of clinical and commercial data ingestion.</p>
+</div>
+<button class="text-primary text-[10px] font-bold uppercase tracking-widest border-b border-primary/20 pb-1">View Archive</button>
+</div>
+<div class="space-y-1">
+<!-- Item 1: Active -->
+<div class="flex flex-col md:flex-row md:items-center justify-between p-6 bg-surface-container-lowest border border-outline-variant/10 group hover:bg-surface-container-low transition-all">
+<div class="flex items-center gap-6 mb-4 md:mb-0">
+<div class="w-10 h-10 flex items-center justify-center bg-tertiary-container/20 rounded-full">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">analytics</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-primary tracking-widest uppercase mb-1">MGO Rating: 850+</p>
+<h4 class="text-lg font-['Newsreader'] italic font-medium">November Sales Projections</h4>
+<p class="text-[11px] text-on-surface-variant font-medium">Injected: Oct 24, 2025 • 4.2MB • 85,200 Rows</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="px-3 py-1 bg-[#f7f3e9] text-[#775a00] text-[10px] font-bold uppercase tracking-widest rounded-full">Analysis Ready</span>
+<button class="flex items-center gap-2 bg-primary text-on-primary px-6 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest group-hover:scale-105 transition-transform">
+                            Analyze Dataset
+                        </button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex flex-col md:flex-row md:items-center justify-between p-6 bg-surface-container-low/40 border border-outline-variant/10 group hover:bg-surface-container-low transition-all">
+<div class="flex items-center gap-6 mb-4 md:mb-0">
+<div class="w-10 h-10 flex items-center justify-center bg-surface-container-highest rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">history</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase mb-1">Historical Archive</p>
+<h4 class="text-lg font-['Newsreader'] italic font-medium">October 2025 S&amp;OP Data</h4>
+<p class="text-[11px] text-on-surface-variant font-medium">Injected: Oct 01, 2025 • 2.8MB • 54,100 Rows</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold uppercase tracking-widest rounded-full">Archived</span>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex flex-col md:flex-row md:items-center justify-between p-6 bg-surface-container-low/40 border border-outline-variant/10 group hover:bg-surface-container-low transition-all">
+<div class="flex items-center gap-6 mb-4 md:mb-0">
+<div class="w-10 h-10 flex items-center justify-center bg-surface-container-highest rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">history</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase mb-1">Q-Report Batch</p>
+<h4 class="text-lg font-['Newsreader'] italic font-medium">Q3 Performance Snapshot</h4>
+<p class="text-[11px] text-on-surface-variant font-medium">Injected: Sep 15, 2025 • 12.1MB • 210,000 Rows</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold uppercase tracking-widest rounded-full">Archived</span>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Asymmetric Detail Section -->
+<div class="mt-24 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+<div class="order-2 md:order-1">
+<div class="relative rounded-lg overflow-hidden h-[300px] shadow-2xl">
+<img alt="Organic Precision" class="w-full h-full object-cover" data-alt="close-up of golden viscous honey dripping from a wooden spoon in a laboratory with soft focus scientific equipment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAf_YX1Osl_3mPneRhl-v2MmHqLuEgMDKBNZZP8tRKBa4luDmNfcZ_SxQjVN5m8i3DSa7PQdK57GXbj7RRTGp2XAVX4PSAjmXcsSWljn0IEXhy71oB52o0rpNh_hwcxZlH50TqturfLDcvXw1t0N2EiY7zTXRP_nSycTLl96VOgKP7KLadbgfCMgs5qLmA8GFFbVvRiFHUakOgDaL3f8RM8fg5yPyzBEKxXviDBpAWgNgPxObhAOB2tntA4uZMcok2Se8Gaot9RNdg"/>
+<div class="absolute inset-0 bg-primary/20 mix-blend-multiply"></div>
+</div>
+</div>
+<div class="order-1 md:order-2">
+<h3 class="text-3xl font-['Newsreader'] italic text-on-surface mb-4">Precision Ingestion</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed mb-6">
+                    Our S&amp;OP engine processes data through a clinical lens, ensuring that every batch of Manuka honey is tracked from its specific hive location to final distribution. We don't just analyze numbers; we preserve the narrative of the landscape.
+                </p>
+<div class="flex gap-8">
+<div>
+<p class="text-2xl font-['Newsreader'] italic text-primary">99.8%</p>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Data Accuracy</p>
+</div>
+<div>
+<p class="text-2xl font-['Newsreader'] italic text-primary">&lt; 2s</p>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Processing Latency</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full bg-[#fdf9ef] dark:bg-[#1c1c16] flex justify-around items-center h-20 px-4 pb-safe z-50 shadow-[0_-10px_40px_rgba(79,70,50,0.06)] tonal-shift bg-[#f7f3e9] dark:bg-[#2d2d24]">
+<div class="flex flex-col items-center justify-center text-[#4f4632] dark:text-[#d3c5ab] opacity-60 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-widest font-bold mt-1">Hives</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#775a00] dark:text-[#f6be00] relative after:content-[''] after:absolute after:-bottom-1 after:w-1 after:h-1 after:bg-[#775a00] after:rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-widest font-bold mt-1">Analysis</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#4f4632] dark:text-[#d3c5ab] opacity-60 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined">biotech</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-widest font-bold mt-1">Laboratory</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#4f4632] dark:text-[#d3c5ab] opacity-60 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-widest font-bold mt-1">Settings</span>
+</div>
+</nav>
+</body></html>
