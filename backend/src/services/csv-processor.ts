@@ -14,6 +14,77 @@ import {
 import { buildFactBundle, type FactBundle } from "../analytics/fact-bundle.js";
 
 /**
+ * Transform multi-channel wide format to long format.
+ * Converts Shopify_M1, Amazon_M1, etc. columns into separate rows per channel/month.
+ *
+ * Month mapping (M4 = March 2026, most recent):
+ * - M1 = December 2025 (2025-12)
+ * - M2 = January 2026 (2026-01)
+ * - M3 = February 2026 (2026-02)
+ * - M4 = March 2026 (2026-03)
+ *
+ * Note: All inventory fields (Stock_On_Hand, Units_On_Order, etc.) are pooled
+ * across channels and stored once per SKU.
+ */
+function transformMultiChannelFormat(
+  rawRows: readonly RawCsvRow[],
+  headers: readonly string[],
+  mapping: CsvFieldMapping,
+): RawCsvRow[] {
+  const transformed: RawCsvRow[] = [];
+
+  // Month mapping: M1→12 (Dec 2025), M2→01 (Jan 2026), M3→02 (Feb 2026), M4→03 (Mar 2026)
+  const monthMap: Record<number, string> = {
+    1: "2025-12",
+    2: "2026-01",
+    3: "2026-02",
+    4: "2026-03",
+  };
+
+  // Extract channel columns (e.g., Shopify_M1, Amazon_M2)
+  const channelColumns = headers.filter(h => /^(shopify|amazon|direct|other)_m\d+$/i.test(h));
+
+  for (const row of rawRows) {
+    // For each channel column, create a new row
+    for (const colName of channelColumns) {
+      const match = colName.match(/^(\w+)_m(\d+)$/i);
+      if (!match) continue;
+
+      const channel = match[1]!.toLowerCase();
+      const monthNum = parseInt(match[2]!, 10);
+      const unitsSold = parseFloat(row[colName] as string) || 0;
+
+      // Use retail price to calculate revenue
+      const retailPrice = parseFloat(row[mapping.retailPrice] as string) || 0;
+      const revenue = unitsSold * retailPrice;
+
+      // Map month number to correct ISO period
+      const period = monthMap[monthNum] || `2026-${String(monthNum).padStart(2, "0")}`;
+
+      // Create new row with all fields needed for CommercialDataRow
+      const newRow: RawCsvRow = {
+        [mapping.sku]: row[mapping.sku],
+        period,
+        [mapping.unitsSold]: String(unitsSold),
+        [mapping.revenue]: String(revenue),
+        [mapping.onHandInventory]: row[mapping.stockOnHand] || row[mapping.onHandInventory],
+        [mapping.retailPrice]: String(retailPrice),
+        channel,
+        // Optional inventory fields (pooled across channels for this SKU)
+        ...(mapping.stockOnHand && { [mapping.stockOnHand]: row[mapping.stockOnHand] }),
+        ...(mapping.unitsOnOrder && { [mapping.unitsOnOrder]: row[mapping.unitsOnOrder] }),
+        ...(mapping.orderArrivalMonths && { [mapping.orderArrivalMonths]: row[mapping.orderArrivalMonths] }),
+        ...(mapping.targetMonthsCover && { [mapping.targetMonthsCover]: row[mapping.targetMonthsCover] }),
+      };
+
+      transformed.push(newRow);
+    }
+  }
+
+  return transformed;
+}
+
+/**
  * CSV processing options.
  */
 export type CsvProcessorOptions = {
@@ -55,14 +126,18 @@ export function processCsv(
 
   // Stage 1: Parse CSV
   let rawRows: RawCsvRow[];
+  let csvHeaders: string[];
   try {
     const buffer = Buffer.isBuffer(csvBytes) ? csvBytes : Buffer.from(csvBytes);
     const text = buffer.toString(options.encoding ?? "utf-8");
-    rawRows = parseCsv(text, {
+    const parsed = parseCsv(text, {
       columns: true,
       skip_empty_lines: true,
       trim: true,
     });
+
+    rawRows = parsed;
+    csvHeaders = Object.keys(parsed[0] || {});
 
     if (!Array.isArray(rawRows) || rawRows.length === 0) {
       errors.push({
@@ -70,6 +145,18 @@ export function processCsv(
         message: "CSV produced no valid rows",
       });
       return { success: false, errors, warnings };
+    }
+
+    // Check if this is multi-channel format and transform if needed
+    if (options.fieldMapping.channel === "multi_channel_marker") {
+      rawRows = transformMultiChannelFormat(rawRows, csvHeaders, options.fieldMapping);
+      if (rawRows.length === 0) {
+        errors.push({
+          stage: "parse_csv",
+          message: "Multi-channel transformation produced no rows",
+        });
+        return { success: false, errors, warnings };
+      }
     }
   } catch (err) {
     errors.push({
@@ -150,20 +237,64 @@ function deduplicateLastWins(rows: readonly CommercialDataRow[]): CommercialData
 
 /**
  * Create default field mapping from common column names.
+ * Supports two formats:
+ * 1. Traditional: period, unitsSold, revenue columns (one row per period)
+ * 2. Multi-channel wide: Shopify_M1, Amazon_M1, etc. columns with separate inventory columns
  * Throws if critical columns are missing.
  */
 export function inferFieldMapping(csvHeaders: readonly string[]): CsvFieldMapping {
   const headers = new Set(csvHeaders);
 
-  // Define aliases for each required field
-  const skuAliases = ["sku", "product_id", "sku_code", "item"];
-  const periodAliases = ["period", "month", "yyyymm", "date"];
-  const unitsSoldAliases = ["units_sold", "qty_sold", "sales_units", "units"];
-  const revenueAliases = ["revenue", "sales", "total_sales", "gross_revenue"];
-  const inventoryAliases = ["on_hand_inventory", "inventory", "stock", "stock_qty"];
-  const priceAliases = ["retail_price", "list_price", "price", "msrp"];
+  // Check for multi-channel wide format (has Shopify_M1, Amazon_M1, etc.)
+  const isMultiChannelFormat = Array.from(headers).some(h =>
+    /^(shopify|amazon|direct|other)_m\d+$/i.test(h)
+  );
+
+  if (isMultiChannelFormat) {
+    // Multi-channel wide format: use SKU, inventory, and price columns
+    // Period and channel will be extracted from column names (Shopify_M1, Amazon_M2, etc.)
+    const skuAliases = ["sku", "product_id", "sku_code", "item"];
+    const inventoryAliases = ["stock_on_hand", "Stock_On_Hand", "on_hand", "stock", "inventory"];
+    const priceAliases = ["retail_price_usd", "Retail_Price_USD", "retail_price", "price", "msrp"];
+    const unitsOnOrderAliases = ["units_on_order", "Units_On_Order", "on_order", "pending"];
+    const orderArrivalAliases = ["order_arrival_months", "Order_Arrival_Months", "arrival_months", "lead_time"];
+    const targetCoverAliases = ["target_months_cover", "Target_Months_Cover", "target_cover", "target_months"];
+
+    const sku = findField(headers, skuAliases);
+    const inventoryCol = findField(headers, inventoryAliases);
+    const priceCol = findField(headers, priceAliases);
+
+    if (!sku || !inventoryCol || !priceCol) {
+      throw new Error(
+        `Multi-channel format requires: SKU, Stock_On_Hand, Retail_Price_USD. Found: ${Array.from(headers).join(", ")}`,
+      );
+    }
+
+    // Return mapping with pooled inventory fields
+    return {
+      sku,
+      period: "month_placeholder", // Will be extracted from column names
+      unitsSold: "sales_placeholder", // Will be calculated from channel columns
+      revenue: "revenue_placeholder", // Will be calculated from sales × price
+      onHandInventory: inventoryCol, // Pooled across all channels
+      retailPrice: priceCol,
+      stockOnHand: inventoryCol, // Same as onHandInventory (pooled)
+      unitsOnOrder: findField(headers, unitsOnOrderAliases),
+      orderArrivalMonths: findField(headers, orderArrivalAliases),
+      targetMonthsCover: findField(headers, targetCoverAliases),
+      channel: "multi_channel_marker", // Marks this as multi-channel format
+    };
+  }
+
+  // Traditional format
+  const skuAliases = ["SKU", "sku", "product_id", "sku_code", "item"];
+  const periodAliases = ["period", "month", "yyyymm", "date", "Period"];
+  const unitsSoldAliases = ["units_sold", "qty_sold", "sales_units", "units", "Units_Sold"];
+  const revenueAliases = ["revenue", "sales", "total_sales", "gross_revenue", "Revenue"];
+  const inventoryAliases = ["on_hand_inventory", "inventory", "stock", "stock_qty", "Stock_On_Hand"];
+  const priceAliases = ["retail_price", "list_price", "price", "msrp", "Retail_Price_USD"];
   const cogsAliases = ["cogs", "cost", "unit_cost", "product_cost"];
-  const inboundAliases = ["inbound", "on_order", "pending", "incoming"];
+  const inboundAliases = ["inbound", "on_order", "pending", "incoming", "Units_On_Order"];
 
   const sku = findField(headers, skuAliases);
   const period = findField(headers, periodAliases);
