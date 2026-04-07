@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Newsreader, Manrope } from "next/font/google";
+import { DataSourceProvider } from "@/contexts/DataSourceContext";
 import "./globals.css";
 
 const newsreader = Newsreader({
@@ -36,7 +37,9 @@ export default function RootLayout({
       <body
         className={`${newsreader.variable} ${manrope.variable} antialiased bg-background text-foreground`}
       >
-        {children}
+        <DataSourceProvider>
+          {children}
+        </DataSourceProvider>
       </body>
     </html>
   );
