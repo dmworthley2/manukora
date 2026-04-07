@@ -80,31 +80,46 @@ export async function POST(req: Request) {
     }
 
     // Process CSV
+    console.log("[CSV Process] Starting CSV processing with fieldMapping:", Object.entries(fieldMapping).slice(0, 5));
     const result = processCsv(csvBytes, { fieldMapping });
 
+    console.log(`[CSV Process] Result success=${result.success}, errors=${result.errors.length}`);
+
     if (!result.success) {
+      // Log all errors for debugging
+      console.error("[CSV Process] Validation failed:", result.errors);
+
       // Get detailed error messages for debugging
       const errorMessages = result.errors.map(e => {
-        if (e.stage === "validate_rows" && e.detail) {
-          const details = Array.isArray(e.detail) ? e.detail : [e.detail];
-          return `${e.message}: ${details.map(d => {
-            if (typeof d === 'object' && d !== null && 'reason' in d) {
-              return `${(d as any).field}=${(d as any).value} (${(d as any).reason})`;
-            }
-            return JSON.stringify(d);
-          }).join('; ')}`;
+        let msg = `[${e.stage}] ${e.message}`;
+        if (e.detail) {
+          if (Array.isArray(e.detail)) {
+            msg += `: ${e.detail.map(d => {
+              if (typeof d === 'object' && d !== null) {
+                return `field=${(d as any).field}, value="${(d as any).value}", reason=${(d as any).reason}`;
+              }
+              return JSON.stringify(d);
+            }).join(' | ')}`;
+          } else {
+            msg += `: ${JSON.stringify(e.detail).substring(0, 200)}`;
+          }
         }
-        return e.message;
+        return msg;
       });
+
+      console.error("[CSV Process] Error messages:", errorMessages);
 
       return Response.json(
         {
           error: "CSV validation failed",
-          details: errorMessages.slice(0, 3),
+          details: errorMessages,
+          fullErrors: result.errors,
         },
         { status: 400 },
       );
     }
+
+    console.log(`[CSV Process] CSV validated successfully, ${result.rows?.length || 0} rows`);
 
     // Store upload and create report
     const env = loadEnv();

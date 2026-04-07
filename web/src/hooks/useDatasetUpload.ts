@@ -59,7 +59,17 @@ export function useDatasetUpload() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Processing failed");
+
+        // Build detailed error message
+        let errorMsg = data.error || "Processing failed";
+        if (data.details && Array.isArray(data.details)) {
+          errorMsg = data.details.join(" | ");
+        } else if (data.details) {
+          errorMsg = JSON.stringify(data.details);
+        }
+
+        console.error("[Upload] Error response:", data);
+        throw new Error(errorMsg);
       }
 
       const result: ProcessResponse = await response.json();
@@ -69,6 +79,7 @@ export function useDatasetUpload() {
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Processing failed";
+      console.error("[Upload] Error:", message);
       setError(message);
       setSuccess(false);
       return null;

@@ -169,6 +169,8 @@ export function processCsv(
     rawRows = parsed;
     csvHeaders = Object.keys(parsed[0] || {});
 
+    console.log(`[processCsv] Parsed CSV: ${rawRows.length} rows, headers: ${csvHeaders.join(", ")}`);
+
     if (!Array.isArray(rawRows) || rawRows.length === 0) {
       errors.push({
         stage: "parse_csv",
@@ -179,7 +181,11 @@ export function processCsv(
 
     // Check if this is multi-channel format and transform if needed
     if (options.fieldMapping.channel === "multi_channel_marker") {
+      console.log(`[processCsv] Detected multi-channel format, transforming...`);
+      const beforeTransform = rawRows.length;
       rawRows = transformMultiChannelFormat(rawRows, csvHeaders, options.fieldMapping);
+      console.log(`[processCsv] Transformation: ${beforeTransform} SKUs → ${rawRows.length} rows`);
+
       if (rawRows.length === 0) {
         errors.push({
           stage: "parse_csv",
@@ -189,6 +195,7 @@ export function processCsv(
       }
     }
   } catch (err) {
+    console.error(`[processCsv] Parse stage failed:`, err);
     errors.push({
       stage: "parse_csv",
       message: `Failed to parse CSV: ${err instanceof Error ? err.message : String(err)}`,
@@ -198,9 +205,21 @@ export function processCsv(
   }
 
   // Stage 2: Validate and coerce rows
+  console.log(`[processCsv] Stage 2: Validating ${rawRows.length} rows with fieldMapping:`, {
+    sku: options.fieldMapping.sku,
+    period: options.fieldMapping.period,
+    unitsSold: options.fieldMapping.unitsSold,
+    revenue: options.fieldMapping.revenue,
+    onHandInventory: options.fieldMapping.onHandInventory,
+    retailPrice: options.fieldMapping.retailPrice,
+  });
+
   const parseResult = parseCommercialRows(rawRows, options.fieldMapping);
+  console.log(`[processCsv] Validation result: ${parseResult.rows?.length || 0} valid rows, ${parseResult.errors.length} errors`);
+
   if (parseResult.errors.length > 0) {
     // Fail-closed: if any row fails validation, return errors
+    console.error(`[processCsv] Validation errors:`, parseResult.errors.slice(0, 3));
     errors.push({
       stage: "validate_rows",
       message: `${parseResult.errors.length} row(s) failed validation`,
@@ -275,10 +294,14 @@ function deduplicateLastWins(rows: readonly CommercialDataRow[]): CommercialData
 export function inferFieldMapping(csvHeaders: readonly string[]): CsvFieldMapping {
   const headers = new Set(csvHeaders);
 
+  console.log(`[inferFieldMapping] Analyzing ${csvHeaders.length} headers: ${csvHeaders.join(", ")}`);
+
   // Check for multi-channel wide format (has Shopify_M1, Amazon_M1, etc.)
   const isMultiChannelFormat = Array.from(headers).some(h =>
     /^(shopify|amazon|direct|other)_m\d+$/i.test(h)
   );
+
+  console.log(`[inferFieldMapping] Detected format: ${isMultiChannelFormat ? "multi-channel wide" : "traditional"}`);
 
   if (isMultiChannelFormat) {
     // Multi-channel wide format: use SKU, inventory, and price columns
