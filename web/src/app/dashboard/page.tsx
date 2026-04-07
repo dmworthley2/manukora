@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { KPICard } from "@/components/dashboard/kpi-card";
 import { AlertCard } from "@/components/dashboard/alert-card";
-import type { ReportRunRow, FactBundle } from "@manukora/backend";
+import type { ReportRunRow } from "@manukora/backend";
 
 type AlertType = "error" | "warning" | "info";
 
