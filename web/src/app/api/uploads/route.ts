@@ -15,7 +15,13 @@ export async function POST(req: Request) {
     }
 
     const csvBytes = new Uint8Array(await file.arrayBuffer());
+
+    console.log("DEBUG: process.env keys =", Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('ANTHROPIC')));
+    console.log("DEBUG: SUPABASE_URL =", process.env.SUPABASE_URL);
+    console.log("DEBUG: SUPABASE_SERVICE_ROLE_KEY length =", process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
+
     const env = loadEnv();
+    console.log("DEBUG: After loadEnv - env.SUPABASE_URL =", env.SUPABASE_URL);
     const client = createSupabaseAdminClient(env);
 
     const uploadRow = await uploadCsv(client, csvBytes, {
