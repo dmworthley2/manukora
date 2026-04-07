@@ -2,7 +2,7 @@ import { z } from "zod";
 const envSchema = z.object({
     SUPABASE_URL: z.string().url(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-    ANTHROPIC_API_KEY: z.string().min(1),
+    ANTHROPIC_API_KEY: z.string().min(1).optional(),
     LLM_MODEL: z.string().default("claude-3-5-haiku-20241022"),
     LLM_TEMPERATURE: z.coerce.number().min(0).max(1).default(0.3),
 });
@@ -18,7 +18,7 @@ export function loadEnv(overrides) {
     });
     if (!parsed.success) {
         const msg = parsed.error.flatten().fieldErrors;
-        throw new Error(`Invalid environment: ${JSON.stringify(msg)}. Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY`);
+        throw new Error(`Invalid environment: ${JSON.stringify(msg)}. Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY`);
     }
     return parsed.data;
 }

@@ -11,10 +11,14 @@ import { withTimeout } from "../lib/timeout.js";
  */
 export async function runAuditorNode(
   state: BriefingState,
-  env: { ANTHROPIC_API_KEY: string; LLM_MODEL: string; LLM_TEMPERATURE: number },
+  env: { ANTHROPIC_API_KEY?: string; LLM_MODEL: string; LLM_TEMPERATURE: number },
 ): Promise<Partial<BriefingState>> {
   if (!state.analystDraft) {
     throw new Error("No analyst draft to audit");
+  }
+
+  if (!env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY is required for auditor node");
   }
 
   const client = new Anthropic({

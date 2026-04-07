@@ -7,6 +7,9 @@ import { withTimeout } from "../lib/timeout.js";
  * Returns: updated state with analystDraft
  */
 export async function runAnalystNode(state, env) {
+    if (!env.ANTHROPIC_API_KEY) {
+        throw new Error("ANTHROPIC_API_KEY is required for analyst node");
+    }
     const client = new Anthropic({
         apiKey: env.ANTHROPIC_API_KEY,
     });

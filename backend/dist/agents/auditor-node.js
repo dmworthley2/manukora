@@ -11,6 +11,9 @@ export async function runAuditorNode(state, env) {
     if (!state.analystDraft) {
         throw new Error("No analyst draft to audit");
     }
+    if (!env.ANTHROPIC_API_KEY) {
+        throw new Error("ANTHROPIC_API_KEY is required for auditor node");
+    }
     const client = new Anthropic({
         apiKey: env.ANTHROPIC_API_KEY,
     });

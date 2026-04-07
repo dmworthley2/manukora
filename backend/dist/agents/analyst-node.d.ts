@@ -5,7 +5,7 @@ import type { BriefingState } from "./types.js";
  * Returns: updated state with analystDraft
  */
 export declare function runAnalystNode(state: BriefingState, env: {
-    ANTHROPIC_API_KEY: string;
+    ANTHROPIC_API_KEY?: string;
     LLM_MODEL: string;
     LLM_TEMPERATURE: number;
 }): Promise<Partial<BriefingState>>;

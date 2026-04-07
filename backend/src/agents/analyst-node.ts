@@ -10,8 +10,12 @@ import { withTimeout } from "../lib/timeout.js";
  */
 export async function runAnalystNode(
   state: BriefingState,
-  env: { ANTHROPIC_API_KEY: string; LLM_MODEL: string; LLM_TEMPERATURE: number },
+  env: { ANTHROPIC_API_KEY?: string; LLM_MODEL: string; LLM_TEMPERATURE: number },
 ): Promise<Partial<BriefingState>> {
+  if (!env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY is required for analyst node");
+  }
+
   const client = new Anthropic({
     apiKey: env.ANTHROPIC_API_KEY,
   });

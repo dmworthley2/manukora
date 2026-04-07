@@ -12,6 +12,13 @@ import { runAuditorNode } from "./auditor-node.js";
  *        → [if max iterations] FAIL
  */
 export async function executeGraph(initialState, env) {
+    // Validate required environment for agent execution
+    if (!env.ANTHROPIC_API_KEY) {
+        return {
+            ...initialState,
+            error: "ANTHROPIC_API_KEY environment variable is required for briefing generation",
+        };
+    }
     let state = { ...initialState };
     // Max 2 iterations: 0 (initial) → 1 (first revision) → 2 (final)
     while (state.iterationCount < 2) {

@@ -6,7 +6,7 @@ import type { BriefingState } from "./types.js";
  * Returns: updated state with auditResult and approved flag
  */
 export declare function runAuditorNode(state: BriefingState, env: {
-    ANTHROPIC_API_KEY: string;
+    ANTHROPIC_API_KEY?: string;
     LLM_MODEL: string;
     LLM_TEMPERATURE: number;
 }): Promise<Partial<BriefingState>>;
