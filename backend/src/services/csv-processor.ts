@@ -67,15 +67,24 @@ function transformMultiChannelFormat(
         period,
         [mapping.unitsSold]: String(unitsSold),
         [mapping.revenue]: String(revenue),
-        [mapping.onHandInventory]: row[mapping.stockOnHand] || row[mapping.onHandInventory],
+        [mapping.onHandInventory]: row[mapping.stockOnHand ?? mapping.onHandInventory],
         [mapping.retailPrice]: String(retailPrice),
         channel,
-        // Optional inventory fields (pooled across channels for this SKU)
-        ...(mapping.stockOnHand && { [mapping.stockOnHand]: row[mapping.stockOnHand] }),
-        ...(mapping.unitsOnOrder && { [mapping.unitsOnOrder]: row[mapping.unitsOnOrder] }),
-        ...(mapping.orderArrivalMonths && { [mapping.orderArrivalMonths]: row[mapping.orderArrivalMonths] }),
-        ...(mapping.targetMonthsCover && { [mapping.targetMonthsCover]: row[mapping.targetMonthsCover] }),
       };
+
+      // Add optional inventory fields if mapping exists
+      if (mapping.stockOnHand) {
+        newRow[mapping.stockOnHand] = row[mapping.stockOnHand];
+      }
+      if (mapping.unitsOnOrder) {
+        newRow[mapping.unitsOnOrder] = row[mapping.unitsOnOrder];
+      }
+      if (mapping.orderArrivalMonths) {
+        newRow[mapping.orderArrivalMonths] = row[mapping.orderArrivalMonths];
+      }
+      if (mapping.targetMonthsCover) {
+        newRow[mapping.targetMonthsCover] = row[mapping.targetMonthsCover];
+      }
 
       transformed.push(newRow);
     }
@@ -321,7 +330,7 @@ export function inferFieldMapping(csvHeaders: readonly string[]): CsvFieldMappin
   };
 }
 
-function findField(headers: Set<string>, aliases: readonly string[]): string | null {
+function findField(headers: Set<string>, aliases: readonly string[]): string | undefined {
   for (const alias of aliases) {
     const normalized = alias.toLowerCase().trim();
     for (const header of headers) {
@@ -330,5 +339,5 @@ function findField(headers: Set<string>, aliases: readonly string[]): string | n
       }
     }
   }
-  return null;
+  return undefined;
 }

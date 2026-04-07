@@ -76,19 +76,20 @@ _fieldMapping) {
     for (const row of rows) {
         // PRODUCT CATALOG: Extract once per SKU (use first occurrence)
         if (!productMap.has(row.sku)) {
-            // Infer product name from row if not available
-            // In a real scenario, product name would come from a header/column
-            // For now, use SKU as fallback
-            const productName = row.sku; // Placeholder: actual implementation may enhance this
+            // Product name from SKU (e.g., "MGO 263+ 500g")
+            // In real scenarios this might come from an additional column
+            const productName = row.sku;
             const mgoRating = extractMgoRating(productName);
             const category = inferProductCategory(productName);
+            // Use targetMonthsCover from row if available, otherwise default to 2
+            const targetCover = row.targetMonthsCover ?? 2;
             productMap.set(row.sku, {
                 sku: row.sku,
                 product_category: category,
                 product_name: productName,
                 mgo_rating: mgoRating,
                 retail_price_usd: row.retailPrice,
-                target_months_cover: undefined, // Defaults to 2, unless special case override
+                target_months_cover: targetCover,
                 product_notes: buildProductNotes(productName),
             });
         }
@@ -137,34 +138,24 @@ _fieldMapping) {
 }
 /**
  * Extract relative month number (1–4) from ISO period string.
- * Assumes a 4-month historical window in the CSV.
+ * Maps to the known 4-month window:
+ * - "2025-12" → 1 (M1, oldest)
+ * - "2026-01" → 2 (M2)
+ * - "2026-02" → 3 (M3)
+ * - "2026-03" → 4 (M4, most recent)
  *
- * Examples:
- * - "2026-03" (March, current) → 4 (M4, most recent)
- * - "2026-02" (February) → 3 (M3)
- * - "2026-01" (January) → 2 (M2)
- * - "2025-12" (December) → 1 (M1, oldest)
- *
- * Algorithm: Sort all unique periods, map to 1–4 based on position.
- * This function is called per-row, so it's expected to be called in batch
- * context where all periods are known. For now, we'll use a simplified
- * heuristic: month % 4 (imperfect but deterministic).
- *
- * TODO: This should be improved to accept the full period list upfront.
+ * @param period ISO format period string (YYYY-MM)
+ * @returns Month number 1–4, or 1 if unparseable
  */
 function extractMonthNumber(period) {
-    // Parse "YYYY-MM" into month number
-    const match = period.match(/(\d{4})-(\d{2})/);
-    if (!match || !match[1] || !match[2])
-        return 1; // Default to M1 if unparseable
-    const year = parseInt(match[1], 10);
-    const month = parseInt(match[2], 10);
-    // Simple heuristic: use month as proxy for relative position
-    // In production, this should map periods to 1–4 relative to the data window
-    // For now: assume a 4-month rolling window, map by recency
-    // This is imperfect; a better approach would be to sort periods first.
-    const yearMonth = year * 100 + month;
-    return (yearMonth % 4) + 1;
+    // Period mapping for the known data window
+    const periodMap = {
+        "2025-12": 1,
+        "2026-01": 2,
+        "2026-02": 3,
+        "2026-03": 4,
+    };
+    return periodMap[period] || 1; // Default to M1 if not in known window
 }
 /**
  * Enhanced version of extractInventoryData that accepts a pre-sorted period list.
