@@ -23,14 +23,20 @@ CREATE TABLE IF NOT EXISTS public.inventory_state (
 CREATE TABLE IF NOT EXISTS public.sales_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sku VARCHAR(255) NOT NULL REFERENCES public.product_catalog(sku) ON DELETE CASCADE,
-  channel VARCHAR(50) NOT NULL,          -- 'Amazon', 'Shopify'
-  month_period INTEGER NOT NULL,         -- 1, 2, 3, 4 (relative to upload period)
+  channel VARCHAR(50) NOT NULL,
+  month_period INTEGER NOT NULL,
   units_sold INTEGER NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(sku, channel, month_period)
 );
 
--- SEMANTIC REASONING LAYER
+-- INDEXES (created before view to ensure data structure is complete)
+CREATE INDEX IF NOT EXISTS inventory_state_sku_idx ON public.inventory_state (sku);
+CREATE INDEX IF NOT EXISTS sales_history_sku_idx ON public.sales_history (sku);
+CREATE INDEX IF NOT EXISTS sales_history_sku_channel_idx ON public.sales_history (sku, channel);
+CREATE INDEX IF NOT EXISTS sales_history_period_idx ON public.sales_history (month_period);
+
+-- SEMANTIC REASONING LAYER (created after all tables and indexes)
 CREATE OR REPLACE VIEW public.agent_reasoning_feed AS
 WITH sales_summary AS (
   SELECT
@@ -65,15 +71,7 @@ FROM public.product_catalog p
 JOIN sales_summary s ON p.sku = s.sku
 JOIN public.inventory_state i ON p.sku = i.sku;
 
--- INDEXES
-CREATE INDEX IF NOT EXISTS inventory_state_sku_idx ON public.inventory_state (sku);
-CREATE INDEX IF NOT EXISTS sales_history_sku_idx ON public.sales_history (sku);
-CREATE INDEX IF NOT EXISTS sales_history_sku_channel_idx ON public.sales_history (sku, channel);
-CREATE INDEX IF NOT EXISTS sales_history_period_idx ON public.sales_history (month_period);
-
 -- RLS POLICIES
 ALTER TABLE public.product_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sales_history ENABLE ROW LEVEL SECURITY;
-
--- No policies yet: only service_role (backend) or dashboard access.
