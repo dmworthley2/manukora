@@ -19,7 +19,7 @@ export async function upsertProductCatalog(client, products) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await client
             .from("product_catalog")
-            .upsert(products, { onConflict: "sku" });
+            .upsert(products);
         if (error) {
             log.error("product_catalog.upsert failed", { errorMessage: error.message });
             return { success: false, error: error.message };
@@ -48,7 +48,7 @@ export async function upsertInventoryState(client, inventory) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await client
             .from("inventory_state")
-            .upsert(inventory, { onConflict: "sku" });
+            .upsert(inventory);
         if (error) {
             log.error("inventory_state.upsert failed", { errorMessage: error.message });
             return { success: false, error: error.message };
@@ -78,19 +78,19 @@ export async function insertSalesHistory(client, sales) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error, data } = await client
             .from("sales_history")
-            .insert(sales)
+            .upsert(sales)
             .select();
         if (error) {
-            log.error("sales_history.insert failed", { errorMessage: error.message });
+            log.error("sales_history.upsert failed", { errorMessage: error.message });
             return { success: false, count: 0, error: error.message };
         }
         const count = Array.isArray(data) ? data.length : 0;
-        log.info("sales_history inserted", { attempted: sales.length, inserted: count });
+        log.info("sales_history upserted", { attempted: sales.length, upserted: count });
         return { success: true, count };
     }
     catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        log.error("sales_history.insert exception", { error: message });
+        log.error("sales_history.upsert exception", { error: message });
         return { success: false, count: 0, error: message };
     }
 }

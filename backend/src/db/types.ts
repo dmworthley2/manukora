@@ -151,7 +151,7 @@ export interface ProductCatalogInsert {
   readonly retail_price_usd: number;
   readonly target_months_cover?: number;
   readonly product_notes?: string | null;
-  readonly upload_id: string;
+  readonly upload_id?: string;
 }
 
 /**
@@ -191,7 +191,7 @@ export interface InventoryStateInsert {
   readonly stock_on_hand: number;
   readonly units_on_order: number;
   readonly order_arrival_months: number;
-  readonly upload_id: string;
+  readonly upload_id?: string;
 }
 
 /**
@@ -230,7 +230,7 @@ export interface SalesHistoryInsert {
   readonly channel: string;
   readonly month_period: number;
   readonly units_sold: number;
-  readonly upload_id: string;
+  readonly upload_id?: string;
 }
 
 // ============================================================================
