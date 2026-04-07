@@ -37,33 +37,46 @@ function transformMultiChannelFormat(rawRows, headers, mapping) {
                 continue;
             const channel = match[1].toLowerCase();
             const monthNum = parseInt(match[2], 10);
-            const unitsSold = parseFloat(row[colName]) || 0;
+            const unitsSoldValue = row[colName];
+            const unitsSold = unitsSoldValue ? parseFloat(unitsSoldValue) : 0;
+            // Skip rows with 0 units (no sales for this channel/month)
+            if (unitsSold === 0)
+                continue;
             // Use retail price to calculate revenue
-            const retailPrice = parseFloat(row[mapping.retailPrice]) || 0;
+            const retailPriceValue = row[mapping.retailPrice];
+            const retailPrice = retailPriceValue ? parseFloat(retailPriceValue) : 0;
+            if (retailPrice <= 0) {
+                // Skip if retail price is invalid
+                continue;
+            }
             const revenue = unitsSold * retailPrice;
             // Map month number to correct ISO period
             const period = monthMap[monthNum] || `2026-${String(monthNum).padStart(2, "0")}`;
+            // Get inventory value (pooled across channels)
+            const inventoryColName = mapping.stockOnHand ?? mapping.onHandInventory;
+            const inventoryValue = row[inventoryColName];
+            const onHandInventory = inventoryValue ? parseFloat(inventoryValue) : 0;
             // Create new row with all fields needed for CommercialDataRow
             const newRow = {
-                [mapping.sku]: row[mapping.sku],
+                [mapping.sku]: row[mapping.sku] || "",
                 period,
                 [mapping.unitsSold]: String(unitsSold),
                 [mapping.revenue]: String(revenue),
-                [mapping.onHandInventory]: row[mapping.stockOnHand ?? mapping.onHandInventory],
+                [mapping.onHandInventory]: String(onHandInventory),
                 [mapping.retailPrice]: String(retailPrice),
                 channel,
             };
             // Add optional inventory fields if mapping exists
-            if (mapping.stockOnHand) {
+            if (mapping.stockOnHand && row[mapping.stockOnHand]) {
                 newRow[mapping.stockOnHand] = row[mapping.stockOnHand];
             }
-            if (mapping.unitsOnOrder) {
+            if (mapping.unitsOnOrder && row[mapping.unitsOnOrder]) {
                 newRow[mapping.unitsOnOrder] = row[mapping.unitsOnOrder];
             }
-            if (mapping.orderArrivalMonths) {
+            if (mapping.orderArrivalMonths && row[mapping.orderArrivalMonths]) {
                 newRow[mapping.orderArrivalMonths] = row[mapping.orderArrivalMonths];
             }
-            if (mapping.targetMonthsCover) {
+            if (mapping.targetMonthsCover && row[mapping.targetMonthsCover]) {
                 newRow[mapping.targetMonthsCover] = row[mapping.targetMonthsCover];
             }
             transformed.push(newRow);
