@@ -60,7 +60,7 @@ export default function DataSourcesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background">
+    <>
       {/* Header */}
       <section className="border-b py-12">
         <div className="max-w-6xl mx-auto px-6">
@@ -89,6 +89,6 @@ export default function DataSourcesPage() {
         {/* Info Section */}
         <InfoSection />
       </div>
-    </main>
+    </>
   );
 }

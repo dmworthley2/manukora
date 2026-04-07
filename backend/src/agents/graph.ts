@@ -18,6 +18,14 @@ export async function executeGraph(
   initialState: BriefingState,
   env: Env,
 ): Promise<BriefingState> {
+  // Validate required environment for agent execution
+  if (!env.ANTHROPIC_API_KEY) {
+    return {
+      ...initialState,
+      error: "ANTHROPIC_API_KEY environment variable is required for briefing generation",
+    };
+  }
+
   let state = { ...initialState };
 
   // Max 2 iterations: 0 (initial) → 1 (first revision) → 2 (final)
