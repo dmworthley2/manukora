@@ -10,6 +10,8 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+// Force rebuild: 2026-04-07
+
 /** Validate process.env for server-side Supabase admin usage and LLM agents. Call once at process startup. */
 export function loadEnv(overrides?: Record<string, string | undefined>): Env {
   const source = { ...process.env, ...overrides };
