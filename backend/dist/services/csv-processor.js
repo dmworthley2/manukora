@@ -59,13 +59,17 @@ function transformMultiChannelFormat(rawRows, headers, mapping) {
             // Create new row with all fields needed for CommercialDataRow
             const newRow = {
                 [mapping.sku]: row[mapping.sku] || "",
-                period,
+                [mapping.period]: period,
                 [mapping.unitsSold]: String(unitsSold),
                 [mapping.revenue]: String(revenue),
                 [mapping.onHandInventory]: String(onHandInventory),
                 [mapping.retailPrice]: String(retailPrice),
                 channel,
             };
+            // Add channel field with mapped name if available, otherwise use literal key
+            if (mapping.channel) {
+                newRow[mapping.channel] = channel;
+            }
             // Add optional inventory fields if mapping exists
             if (mapping.stockOnHand && row[mapping.stockOnHand]) {
                 newRow[mapping.stockOnHand] = row[mapping.stockOnHand];

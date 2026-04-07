@@ -83,10 +83,24 @@ export async function POST(req: Request) {
     const result = processCsv(csvBytes, { fieldMapping });
 
     if (!result.success) {
+      // Get detailed error messages for debugging
+      const errorMessages = result.errors.map(e => {
+        if (e.stage === "validate_rows" && e.detail) {
+          const details = Array.isArray(e.detail) ? e.detail : [e.detail];
+          return `${e.message}: ${details.map(d => {
+            if (typeof d === 'object' && d !== null && 'reason' in d) {
+              return `${(d as any).field}=${(d as any).value} (${(d as any).reason})`;
+            }
+            return JSON.stringify(d);
+          }).join('; ')}`;
+        }
+        return e.message;
+      });
+
       return Response.json(
         {
           error: "CSV validation failed",
-          details: result.errors.slice(0, 5),
+          details: errorMessages.slice(0, 3),
         },
         { status: 400 },
       );
