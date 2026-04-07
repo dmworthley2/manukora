@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ExecutiveSummaryContent from "./content";
 
 // This page requires dynamic data and query parameters, so it's not statically generated
@@ -9,15 +8,10 @@ export default function ExecutiveSummaryPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Executive Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Loading briefing...</p>
-            </CardContent>
-          </Card>
+        <div className="min-h-screen bg-[#fdf9ef] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-[#4d4635]">Loading briefing...</p>
+          </div>
         </div>
       }
     >

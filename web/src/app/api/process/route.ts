@@ -51,6 +51,8 @@ export async function POST(req: Request) {
       uploadCsv,
       extractInventoryData,
       inventory,
+      calculateReorderRecommendations,
+      getSellThroughAnalysis,
     } = await import("@manukora/backend");
 
     const formData = await req.formData();
@@ -129,6 +131,47 @@ export async function POST(req: Request) {
 
         // Query reasoning feed for agent use
         inventoryReasoningFeed = await inventory.queryAgentReasoningFeed(client);
+
+        // Enrich fact bundle with inventory analysis if successful
+        if (result.factBundle && inventoryReasoningFeed && inventoryReasoningFeed.length > 0) {
+          const { recommendations, flags } = calculateReorderRecommendations(inventoryReasoningFeed);
+          const sellThroughAnalysis = getSellThroughAnalysis(inventoryReasoningFeed);
+
+          // Categorize cover risks by level
+          const coverRisks: { critical: string[]; high: string[]; medium: string[] } = {
+            critical: [],
+            high: [],
+            medium: [],
+          };
+
+          for (const row of inventoryReasoningFeed) {
+            const daysOfCover = Math.round(row.months_of_cover * 30);
+            const targetDays = row.target_months_cover * 30;
+
+            if (daysOfCover < 10) {
+              coverRisks.critical.push(row.sku);
+            } else if (daysOfCover < targetDays / 2) {
+              coverRisks.high.push(row.sku);
+            } else if (daysOfCover < targetDays) {
+              coverRisks.medium.push(row.sku);
+            }
+          }
+
+          // Enrich fact bundle with inventory analysis by creating new object
+          result.factBundle = {
+            ...result.factBundle,
+            inventoryAnalysis: {
+              reorderRecommendations: recommendations,
+              sellThroughAnalysis: {
+                topPerformers: sellThroughAnalysis.topPerformers.map((p) => p.sku),
+                poorPerformers: sellThroughAnalysis.poorPerformers.map((p) => p.sku),
+                decliners: sellThroughAnalysis.decliners.map((d) => d.sku),
+              },
+              coverRisks,
+              specialCases: flags,
+            },
+          };
+        }
       } catch (err) {
         // Log warning but don't fail the upload
         const message = err instanceof Error ? err.message : String(err);
