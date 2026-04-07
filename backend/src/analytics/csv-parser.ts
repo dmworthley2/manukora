@@ -234,22 +234,28 @@ export function detectDuplicates(rows: readonly CommercialDataRow[]): Array<{
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     if (!row) continue;
-    // Include channel in key if present (for multi-channel data)
-    // Same SKU in same period but different channels is NOT a duplicate
-    const channel = row.channel ? `|${row.channel}` : "";
-    const key = `${row.sku}|${row.period}${channel}`;
+
+    // Build composite key: SKU | period | channel (if present)
+    // Multi-channel data: same SKU/period but different channels are NOT duplicates
+    // Each upload gets unique uploadId, so duplicates only matter within single upload
+    const channel = row.channel || "default";
+    const key = `${row.sku}|${row.period}|${channel}`;
+
     if (!seen.has(key)) {
       seen.set(key, []);
     }
     seen.get(key)!.push(i);
   }
 
+  // Only report true duplicates (same SKU, period, AND channel)
   const duplicates = Array.from(seen.entries())
     .filter(([, indices]) => indices.length > 1)
     .map(([key, indices]) => {
       const parts = key.split("|");
       const sku = parts[0] || "";
       const period = parts[1] || "";
+      // Note: channel is parts[2], included in key but not returned
+      // This prevents false duplicates from multi-channel sales
       return { sku, period, rowIndices: indices as readonly number[] };
     });
 

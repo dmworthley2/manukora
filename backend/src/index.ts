@@ -55,7 +55,6 @@ export {
 
 export {
   parseCommercialRows,
-  detectDuplicates,
   type CommercialDataRow,
   type CsvFieldMapping,
   type CsvParseError,

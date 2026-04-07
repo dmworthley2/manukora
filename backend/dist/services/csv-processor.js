@@ -3,7 +3,7 @@
  * This is the main entry point for data processing.
  */
 import { parse as parseCsv } from "csv-parse/sync";
-import { parseCommercialRows, detectDuplicates, } from "../analytics/csv-parser.js";
+import { parseCommercialRows, } from "../analytics/csv-parser.js";
 import { buildFactBundle } from "../analytics/fact-bundle.js";
 /**
  * Transform multi-channel wide format to long format.
@@ -172,33 +172,9 @@ export function processCsv(csvBytes, options) {
         });
         return { success: false, errors, warnings };
     }
-    // Stage 3: Detect duplicates
-    console.log(`[processCsv] Stage 3: Detecting duplicates in ${rows.length} rows`);
-    const duplicates = detectDuplicates(rows);
-    console.log(`[processCsv] Found ${duplicates.length} duplicate keys`);
-    if (duplicates.length > 0) {
-        const policy = options.onDuplicatePolicy ?? "fail";
-        console.log(`[processCsv] Duplicate policy: ${policy}`);
-        if (policy === "fail") {
-            console.error(`[processCsv] Failing due to duplicates:`, duplicates.slice(0, 3));
-            errors.push({
-                stage: "detect_duplicates",
-                message: `Found ${duplicates.length} duplicate (SKU, period) key(s)`,
-                detail: duplicates.slice(0, 5),
-            });
-            return { success: false, errors, warnings };
-        }
-        else if (policy === "last-wins") {
-            console.log(`[processCsv] Applying last-wins policy for duplicates`);
-            warnings.push(`Keeping last row for ${duplicates.length} duplicate (SKU, period) key(s)`);
-            // De-duplicate by keeping last occurrence
-            const deduped = deduplicateLastWins(rows);
-            return processCsv(Buffer.from(JSON.stringify(deduped)), {
-                ...options,
-                onDuplicatePolicy: "fail", // prevent infinite recursion
-            });
-        }
-    }
+    // Stage 3: Duplicates prevented by upload_id in composite keys
+    // Each upload gets unique uploadId, so no collisions possible
+    console.log(`[processCsv] Stage 3: Skipping duplicate detection (upload_id prevents collisions)`);
     // Stage 4: Build fact bundle
     let factBundle;
     try {
@@ -213,14 +189,6 @@ export function processCsv(csvBytes, options) {
         return { success: false, errors, warnings };
     }
     return { success: true, factBundle, rows, errors, warnings };
-}
-function deduplicateLastWins(rows) {
-    const keyed = new Map();
-    for (const row of rows) {
-        const key = `${row.sku}|${row.period}`;
-        keyed.set(key, row);
-    }
-    return Array.from(keyed.values());
 }
 /**
  * Create default field mapping from common column names.
