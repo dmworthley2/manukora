@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "projects": [
+    {
+      "name": "manukora-web",
+      "rootDirectory": "web"
+    }
+  ]
+}
