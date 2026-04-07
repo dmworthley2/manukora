@@ -7,7 +7,7 @@ Executive briefing system for commercial inventory and demand analysis. Ingests 
 ### Prerequisites
 - Node.js 20+
 - Supabase project (PostgreSQL + Storage)
-- Anthropic API key (for Phase 2 agents)
+- Anthropic API key (optional, required only for Phase 2 agent workflows)
 
 ### Setup
 
