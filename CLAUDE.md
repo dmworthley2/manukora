@@ -136,3 +136,9 @@
 4. **Add tests** — unit tests for components, integration tests for pages
 5. **Add error boundaries** — wrap data-fetching sections
 6. **Verify checklist** — before marking work complete
+
+---
+
+# Git Guidelines
+
+When writing commit messages, strictly use standard formatting and NEVER include a "Co-authored-by" attribution or any AI signatures.

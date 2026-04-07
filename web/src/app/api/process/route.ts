@@ -1,3 +1,31 @@
+/**
+ * Trigger briefing workflow asynchronously.
+ * Imports dynamically to avoid runtime deps on backend at Next.js build time.
+ */
+async function triggerBriefingWorkflow(
+  reportRunId: string,
+  factBundle: unknown,
+  period: string,
+): Promise<void> {
+  const { runBriefingWorkflow, finalizeBriefing, loadEnv, createSupabaseAdminClient } =
+    await import("@manukora/backend");
+
+  try {
+    const env = loadEnv();
+    const client = createSupabaseAdminClient(env);
+
+    // Run the briefing workflow (sync, with 5-min timeout internally)
+    const state = await runBriefingWorkflow(factBundle as never, reportRunId, period, env);
+
+    // Save artifacts and update report_runs
+    await finalizeBriefing(client, reportRunId, state);
+  } catch (err) {
+    // Log error but don't rethrow (fire-and-forget pattern)
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error(`Briefing workflow failed for ${reportRunId}: ${message}`);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const {
@@ -72,6 +100,12 @@ export async function POST(req: Request) {
       await finalizeRun(client, reportRun.id, {
         factBundle: Buffer.from(JSON.stringify(result.factBundle, null, 2)),
       });
+    }
+
+    // Trigger briefing workflow asynchronously (fire-and-forget)
+    if (result.factBundle) {
+      triggerBriefingWorkflow(reportRun.id, result.factBundle, period)
+        .catch(err => console.error("Briefing workflow error:", err));
     }
 
     return Response.json(

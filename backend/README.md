@@ -24,11 +24,19 @@ TypeScript analytics library for commercial inventory and demand analysis. Inges
    - Identifies proactive risks (overstocking, demand decline, slow-moving)
    - Single source of numeric truth for LangGraph consumption
 
-4. **Supabase Integration** (`supabase/` + `services/`)
+4. **LangGraph Agent Orchestration** (`agents/`)
+   - **Analyst Node** (`analyst-node.ts`): Transforms FactBundle into narrative briefing with embedded citations (2-min timeout)
+   - **Auditor Node** (`auditor-node.ts`): Verifies all claims against FactBundle; detects hallucinations (1-min timeout)
+   - **Graph Executor** (`graph.ts`): Routes Analyst → Auditor with max 2 iterations; conditional routing on audit approval
+   - **Workflow Runner** (`orchestration.ts`): Orchestrates end-to-end workflow with 5-minute hard timeout
+   - **Prompts** (`prompts.ts`): System prompts for Analyst (citation rules) and Auditor (strict verification)
+
+5. **Supabase Integration** (`supabase/` + `services/`)
    - Stores CSV uploads in Supabase Storage (immutable per version)
    - Tracks upload metadata and report runs in PostgreSQL
-   - Manages output artifacts (fact bundles, briefing PDFs)
+   - Manages output artifacts (fact bundles, briefing markdown)
    - Provides signed URLs for private storage access
+   - Saves approved briefings to outputs bucket with versioned paths
 
 ### Data Flow
 
@@ -39,12 +47,20 @@ Raw CSV (bytes)
     ↓
 [groupBySku, analyzeTrend, assessCoverRisk] → Metrics[]
     ↓
-[buildFactBundle] → FactBundle (JSON)
+[buildFactBundle] → FactBundle (JSON) [IMMEDIATE RETURN]
+    ↓ [Async, background]
+[Analyst Node] → BriefingDraft (with citations)
     ↓
-[LangGraph: Analyst/Auditor] → Briefing narrative
+[Auditor Node] → Approved? {approved=true | approved=false + corrections}
     ↓
-[Supabase Storage] → Permanent record
+If approved → [Save to Storage] → briefing.md
+If rejected + iterations<2 → [Back to Analyst with feedback]
+If rejected + iterations=2 → [Store error metadata]
+    ↓
+[Update report_runs status] → Permanent record
 ```
+
+**Key Design:** FactBundle is returned immediately to the caller; briefing generation runs asynchronously to avoid blocking HTTP requests.
 
 ## Usage
 
@@ -111,10 +127,40 @@ const run = await createReportRun(client, {
 const factBundle = await processAndAnalyze(csvBytes);
 await finalizeRun(client, run.id, {
   factBundle: Buffer.from(JSON.stringify(factBundle)),
-  briefingMd: Buffer.from(briefingMarkdown),
-  briefingPdf: briefingPdfBuffer,
 });
 ```
+
+### 4. Generate Briefing (Phase 2 — Async LangGraph Workflow)
+
+```typescript
+import { runBriefingWorkflow, finalizeBriefing, loadEnv, createSupabaseAdminClient } from "@manukora/backend";
+
+const env = loadEnv(); // Requires ANTHROPIC_API_KEY + LLM_MODEL
+const client = createSupabaseAdminClient(env);
+
+// Run workflow (synchronous with 5-minute timeout)
+const state = await runBriefingWorkflow(
+  factBundle,
+  reportRunId,
+  "2026-04",
+  env
+);
+
+if (state.approved) {
+  // Save briefing markdown to Supabase Storage
+  await finalizeBriefing(client, reportRunId, state);
+  console.log(`Briefing saved at: outputs/2026/04/${reportRunId}/briefing.md`);
+} else {
+  console.error(`Briefing generation failed after ${state.iterationCount - 1} iterations:`, state.error);
+}
+```
+
+**Workflow Details:**
+- **Analyst Node** (2-min timeout): Transforms FactBundle → narrative sections with embedded citations
+- **Auditor Node** (1-min timeout): Verifies all numerical claims; detects hallucinated SKUs/metrics
+- **Max iterations**: 2 (initial + 1 revision based on auditor feedback)
+- **Total timeout**: 5 minutes hard limit
+- **Fallback**: If agents fail or timeout, error logged to report_runs metadata; FactBundle remains valid
 
 ## Fact Bundle Structure
 
@@ -308,9 +354,36 @@ Tests validate:
 
 ## Dependencies
 
+### Core
 - **`@supabase/supabase-js`** — PostgreSQL + Storage client
 - **`csv-parse`** — CSV parsing (CommonJS-safe streaming)
 - **`zod`** — Runtime schema validation
+
+### Phase 2 — LangGraph Agents
+- **`@anthropic-ai/sdk`** — Claude API client for agent nodes
+- **`@langchain/anthropic`** — LangChain bindings for Claude
+- **`@langchain/langgraph`** — Graph-based orchestration (not used in final implementation; pure TS executor)
+
+## Environment Configuration
+
+### Required Variables (Phase 1)
+- `SUPABASE_URL` — PostgreSQL database URL (e.g., `https://xxxxx.supabase.co`)
+- `SUPABASE_SERVICE_ROLE_KEY` — Service role API key for admin operations
+
+### Required Variables (Phase 2 — Agent Orchestration)
+- `ANTHROPIC_API_KEY` — Claude API key (e.g., `sk-ant-...`)
+- `LLM_MODEL` — Claude model ID (default: `claude-3-5-haiku-20241022`)
+- `LLM_TEMPERATURE` — Sampling temperature for agents (default: `0.3`)
+
+Set these in `.env` or pass to `loadEnv(overrides)`:
+
+```bash
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+ANTHROPIC_API_KEY=sk-ant-xxx...
+LLM_MODEL=claude-3-5-haiku-20241022
+LLM_TEMPERATURE=0.3
+```
 
 ## Performance Notes
 
@@ -318,11 +391,23 @@ Tests validate:
 - **Analytics**: ~5-20ms (all metrics computed in-memory)
 - **Bundle generation**: ~2-5ms (JSON serialization)
 - **Total**: ~20-100ms for end-to-end CSV→bundle on typical data
+- **Briefing generation** (Phase 2): ~2-4 min for Analyst + Auditor (includes API latency)
 
 Storage operations (Supabase upload/download) are network-dependent (100ms–1s).
 
-## Future Extensions (Phase 2)
+## Roadmap
 
+### Phase 2 (Complete) ✓
+- LangGraph orchestration with Analyst + Auditor agents
+- Narrative briefing generation with citation verification
+- Timeout enforcement (2-min Analyst, 1-min Auditor, 5-min total)
+- Async workflow execution with fire-and-forget pattern
+- Briefing storage in Supabase with versioned paths
+
+### Phase 3 (Future)
+- PDF generation for briefing documents
+- Human-in-the-Loop (HiTL) gates for manual risk review
+- Scheduled/batch runs for automated weekly briefings
 - Supplier lead time & MOQ in CSV → order quantity suggestions
 - Seasonal decomposition for demand forecasting
 - A/B testing artifact comparison

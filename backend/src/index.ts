@@ -69,3 +69,23 @@ export {
   type ReorderRecommendation,
   type ProactiveRisk,
 } from "./analytics/fact-bundle.js";
+
+export {
+  runBriefingWorkflow,
+  isWorkflowApproved,
+} from "./agents/orchestration.js";
+
+export {
+  finalizeBriefing,
+  saveBriefingToStorage,
+  updateReportRunWithBriefing,
+} from "./services/briefing.js";
+
+export type {
+  BriefingDraft,
+  AuditResult,
+  BriefingState,
+  Change,
+  BriefingSection,
+  ApprovedBriefing,
+} from "./agents/types.js";
