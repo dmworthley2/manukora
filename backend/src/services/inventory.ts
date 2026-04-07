@@ -69,7 +69,7 @@ export async function upsertInventoryState(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (client
       .from("inventory_state")
-      .upsert(inventory as any[], { onConflict: "sku" }) as any);
+      .upsert(inventory as any[], { onConflict: "sku,upload_id" }) as any);
 
     if (error) {
       log.error("inventory_state.upsert failed", { errorMessage: error.message });
