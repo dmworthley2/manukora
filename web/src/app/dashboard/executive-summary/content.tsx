@@ -56,6 +56,8 @@ export default function ExecutiveSummaryContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
+  const [pollAttempts, setPollAttempts] = useState(0);
+  const MAX_POLL_ATTEMPTS = 5;
 
   useEffect(() => {
     if (!reportRunId) {
@@ -78,6 +80,7 @@ export default function ExecutiveSummaryContent() {
         const data = (await response.json()) as BriefingResponse;
         setBriefing(data);
         setError(null);
+        setPollAttempts(0); // Reset on success
 
         // Fetch metrics once briefing is ready
         try {
@@ -106,8 +109,23 @@ export default function ExecutiveSummaryContent() {
     const startPolling = async () => {
       const success = await fetchBriefing();
       if (!success) {
-        // Briefing not ready, poll every 2 seconds
+        // Briefing not ready, poll every 2 seconds up to 5 attempts
+        let currentAttempt = 0;
         pollInterval = setInterval(async () => {
+          currentAttempt++;
+          setPollAttempts(currentAttempt);
+
+          if (currentAttempt >= MAX_POLL_ATTEMPTS) {
+            // Stop polling after max attempts
+            if (pollInterval) {
+              clearInterval(pollInterval);
+              pollInterval = null;
+            }
+            setError("Briefing generation timed out. Please refresh the page.");
+            setLoading(false);
+            return;
+          }
+
           const ready = await fetchBriefing();
           if (ready && pollInterval) {
             clearInterval(pollInterval);
