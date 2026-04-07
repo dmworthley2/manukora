@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { KPICard } from "@/components/dashboard/kpi-card";
 import { AlertCard } from "@/components/dashboard/alert-card";
+import type { ReportRunRow, FactBundle } from "@manukora/backend";
 
 type AlertType = "error" | "warning" | "info";
 
@@ -60,8 +62,61 @@ const mockData = {
  * DashboardPage
  * Executive summary view with KPIs, channel split, and action items.
  * Uses composed shadcn components (Card, Badge) for consistency.
+ * Fetches real data from /api/reports endpoint.
  */
 export default function DashboardPage() {
+  const [reports, setReports] = useState<ReportRunRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await fetch("/api/reports");
+        if (!response.ok) {
+          throw new Error("Failed to fetch reports");
+        }
+        setReports(await response.json());
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="space-y-12">
+        <div className="animate-pulse">
+          <div className="h-8 bg-surface-container rounded w-1/3 mb-4" />
+          <div className="h-4 bg-surface-container rounded w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <AlertCard
+        type="error"
+        title="Failed to Load Dashboard"
+        description={error}
+        icon="⚠️"
+        badgeLabel="Error"
+      />
+    );
+  }
+
+  // Get latest report for display
+  const latestReport = reports[0];
+  const metadata = latestReport?.metadata as Record<string, unknown> | null;
+
   return (
     <div className="space-y-12">
       {/* Header section */}
@@ -91,8 +146,8 @@ export default function DashboardPage() {
         {/* Total Revenue */}
         <div className="md:col-span-12 lg:col-span-7">
           <KPICard
-            title="Total Revenue (MTD)"
-            value={mockData.revenue.value}
+            title={`Revenue - ${latestReport?.period || "MTD"}`}
+            value={metadata?.totalRevenue ? `$${(metadata.totalRevenue as number).toLocaleString()}` : mockData.revenue.value}
             trend={mockData.revenue.trend}
           >
             <div className="w-full h-20 flex items-end gap-1">
