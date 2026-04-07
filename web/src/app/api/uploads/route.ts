@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     }
 
     const csvBytes = new Uint8Array(await file.arrayBuffer());
+    console.log("DEBUG: process.env.SUPABASE_URL =", process.env.SUPABASE_URL);
     const env = loadEnv();
     const client = createSupabaseAdminClient(env);
 
