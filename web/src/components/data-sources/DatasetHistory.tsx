@@ -84,12 +84,12 @@ export function DatasetHistory({
         <TableBody>
           {uploads.map((upload) => (
             <TableRow key={upload.id}>
-              <TableCell className="font-medium">{upload.filename}</TableCell>
-              <TableCell>{formatDate(upload.createdAt)}</TableCell>
-              <TableCell>{formatFileSize(upload.fileSize)}</TableCell>
-              <TableCell>{upload.rowCount?.toLocaleString()}</TableCell>
+              <TableCell className="font-medium">{upload.original_filename}</TableCell>
+              <TableCell>{formatDate(upload.created_at)}</TableCell>
+              <TableCell>{formatFileSize(upload.byte_size)}</TableCell>
+              <TableCell>-</TableCell>
               <TableCell>
-                <Badge variant="default">Analysis Ready</Badge>
+                <Badge variant="default">Uploaded</Badge>
               </TableCell>
               <TableCell className="text-right space-x-2">
                 <Button

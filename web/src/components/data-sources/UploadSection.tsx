@@ -66,7 +66,7 @@ export function UploadSection({ onUploadSuccess }: UploadSectionProps) {
     if (result) {
       toast({
         title: "Upload successful",
-        description: `${file.name} uploaded (${result.rowCount} rows)`,
+        description: `${file.name} uploaded successfully`,
       });
       onUploadSuccess?.(result);
     } else {

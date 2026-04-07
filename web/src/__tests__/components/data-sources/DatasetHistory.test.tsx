@@ -6,18 +6,20 @@ describe("DatasetHistory", () => {
   const mockUploads: UploadRow[] = [
     {
       id: "1",
-      filename: "sales.csv",
-      fileSize: 4200000,
-      rowCount: 85200,
-      createdAt: "2025-10-24T12:00:00Z",
-    } as UploadRow,
+      original_filename: "sales.csv",
+      byte_size: 4200000,
+      storage_path: "uploads/1",
+      bucket: "uploads",
+      content_type: "text/csv",
+      content_sha256: null,
+      created_at: "2025-10-24T12:00:00Z",
+    },
   ];
 
   it("renders table with uploads", () => {
     render(<DatasetHistory uploads={mockUploads} />);
 
     expect(screen.getByText("sales.csv")).toBeInTheDocument();
-    expect(screen.getByText("85,200")).toBeInTheDocument();
   });
 
   it("shows empty state when no uploads", () => {
