@@ -14,7 +14,7 @@ export declare function upsertProductCatalog(client: SupabaseAdminClient, produc
     error?: string;
 }>;
 /**
- * Insert inventory state (current snapshot).
+ * Upsert inventory state (current snapshot).
  * One row per SKU (replaces entire inventory state for these SKUs).
  */
 export declare function upsertInventoryState(client: SupabaseAdminClient, inventory: readonly InventoryStateInsert[]): Promise<{
@@ -22,9 +22,9 @@ export declare function upsertInventoryState(client: SupabaseAdminClient, invent
     error?: string;
 }>;
 /**
- * Insert sales history records (append, don't replace).
+ * Upsert sales history records (append, don't replace).
  * Each row is (sku, channel, month_period, units_sold).
- * Uses UNIQUE constraint to handle re-uploads gracefully (ignores duplicates).
+ * Uses composite key to handle re-uploads gracefully (idempotent).
  */
 export declare function insertSalesHistory(client: SupabaseAdminClient, sales: readonly SalesHistoryInsert[]): Promise<{
     success: boolean;

@@ -19,17 +19,17 @@ export async function upsertProductCatalog(client, products) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await client
             .from("product_catalog")
-            .insert(products);
+            .upsert(products, { onConflict: "sku,upload_id" });
         if (error) {
-            log.error("product_catalog.insert failed", { errorMessage: error.message });
+            log.error("product_catalog.upsert failed", { errorMessage: error.message });
             return { success: false, error: error.message };
         }
-        log.info("product_catalog inserted", { count: products.length });
+        log.info("product_catalog upserted", { count: products.length });
         return { success: true };
     }
     catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        log.error("product_catalog.insert exception", { error: message });
+        log.error("product_catalog.upsert exception", { error: message });
         return { success: false, error: message };
     }
 }
@@ -37,7 +37,7 @@ export async function upsertProductCatalog(client, products) {
 // INVENTORY STATE OPERATIONS
 // ============================================================================
 /**
- * Insert inventory state (current snapshot).
+ * Upsert inventory state (current snapshot).
  * One row per SKU (replaces entire inventory state for these SKUs).
  */
 export async function upsertInventoryState(client, inventory) {
@@ -48,17 +48,17 @@ export async function upsertInventoryState(client, inventory) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await client
             .from("inventory_state")
-            .insert(inventory);
+            .upsert(inventory, { onConflict: "sku,upload_id" });
         if (error) {
-            log.error("inventory_state.insert failed", { errorMessage: error.message });
+            log.error("inventory_state.upsert failed", { errorMessage: error.message });
             return { success: false, error: error.message };
         }
-        log.info("inventory_state inserted", { count: inventory.length });
+        log.info("inventory_state upserted", { count: inventory.length });
         return { success: true };
     }
     catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        log.error("inventory_state.insert exception", { error: message });
+        log.error("inventory_state.upsert exception", { error: message });
         return { success: false, error: message };
     }
 }
@@ -66,9 +66,9 @@ export async function upsertInventoryState(client, inventory) {
 // SALES HISTORY OPERATIONS
 // ============================================================================
 /**
- * Insert sales history records (append, don't replace).
+ * Upsert sales history records (append, don't replace).
  * Each row is (sku, channel, month_period, units_sold).
- * Uses UNIQUE constraint to handle re-uploads gracefully (ignores duplicates).
+ * Uses composite key to handle re-uploads gracefully (idempotent).
  */
 export async function insertSalesHistory(client, sales) {
     if (sales.length === 0) {
@@ -78,19 +78,19 @@ export async function insertSalesHistory(client, sales) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error, data } = await client
             .from("sales_history")
-            .insert(sales)
+            .upsert(sales, { onConflict: "sku,channel,month_period,upload_id" })
             .select();
         if (error) {
-            log.error("sales_history.insert failed", { errorMessage: error.message });
+            log.error("sales_history.upsert failed", { errorMessage: error.message });
             return { success: false, count: 0, error: error.message };
         }
         const count = Array.isArray(data) ? data.length : 0;
-        log.info("sales_history inserted", { attempted: sales.length, inserted: count });
+        log.info("sales_history upserted", { attempted: sales.length, upserted: count });
         return { success: true, count };
     }
     catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        log.error("sales_history.insert exception", { error: message });
+        log.error("sales_history.upsert exception", { error: message });
         return { success: false, count: 0, error: message };
     }
 }
