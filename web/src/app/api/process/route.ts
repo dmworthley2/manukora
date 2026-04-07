@@ -131,9 +131,8 @@ export async function POST(req: Request) {
     });
 
     // Extract and store inventory data
-    // This is optional; log warnings but don't fail the upload if inventory parsing fails
+    // Fail the entire upload if inventory processing fails
     let inventoryReasoningFeed = null;
-    const inventoryWarnings: string[] = [];
 
     if (result.success && result.rows) {
       try {
@@ -142,7 +141,7 @@ export async function POST(req: Request) {
         // Insert into database
         const catalogResult = await inventory.upsertProductCatalog(client, inventoryData.products);
         if (!catalogResult.success) {
-          inventoryWarnings.push(`Product catalog insert failed: ${catalogResult.error}`);
+          throw new Error(`Product catalog insert failed: ${catalogResult.error}`);
         }
 
         const inventoryResult = await inventory.upsertInventoryState(
@@ -150,12 +149,12 @@ export async function POST(req: Request) {
           inventoryData.inventoryState,
         );
         if (!inventoryResult.success) {
-          inventoryWarnings.push(`Inventory state insert failed: ${inventoryResult.error}`);
+          throw new Error(`Inventory state insert failed: ${inventoryResult.error}`);
         }
 
         const salesResult = await inventory.insertSalesHistory(client, inventoryData.salesHistory);
         if (!salesResult.success) {
-          inventoryWarnings.push(`Sales history insert failed: ${salesResult.error}`);
+          throw new Error(`Sales history insert failed: ${salesResult.error}`);
         }
 
         // Query reasoning feed for agent use
@@ -202,10 +201,13 @@ export async function POST(req: Request) {
           };
         }
       } catch (err) {
-        // Log warning but don't fail the upload
+        // Fail the entire upload if inventory processing fails
         const message = err instanceof Error ? err.message : String(err);
-        console.warn("Inventory parsing failed:", message);
-        inventoryWarnings.push(`Inventory parsing failed: ${message}`);
+        console.error("[CSV Process] Inventory processing failed:", message);
+        return Response.json(
+          { error: "Inventory data processing failed", details: message },
+          { status: 400 },
+        );
       }
     }
 
@@ -241,7 +243,7 @@ export async function POST(req: Request) {
         reportRunId: reportRun.id,
         uploadId: uploadRow.id,
         factBundle: result.factBundle,
-        warnings: [...(result.warnings || []), ...inventoryWarnings],
+        warnings: result.warnings || [],
         inventoryDataInserted: inventoryReasoningFeed !== null,
       },
       { status: 201 },
