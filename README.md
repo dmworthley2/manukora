@@ -1,6 +1,6 @@
 # Manukora
 
-Executive briefing system for commercial inventory and demand analysis. Ingests CSV sales data, generates deterministic metrics, and produces narrative briefings using LangGraph-orchestrated Claude agents.
+Executive briefing system for commercial inventory and demand analysis. Ingests CSV sales data, generates deterministic metrics, and produces narrative briefings using Claude agents orchestrated via a Blackboard pattern on Supabase Edge Functions.
 
 ## Quick Start
 

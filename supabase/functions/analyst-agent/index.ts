@@ -234,7 +234,7 @@ async function executeTool(
     const title = typeof toolInput.title === "string" ? toolInput.title : null;
     const content = typeof toolInput.content === "string" ? toolInput.content : null;
     const reasoning = typeof toolInput.reasoning === "string" ? toolInput.reasoning : null;
-    if (!section_id || !title || !content) return `submit_section: missing required fields`;
+    if (!section_id || !title || !content || !reasoning) return `submit_section: missing required fields`;
     const now = new Date().toISOString();
     const { error } = await supabase.from("briefing_section").upsert({
       blackboard_id: blackboardId,
