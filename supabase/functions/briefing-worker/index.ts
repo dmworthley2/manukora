@@ -6,6 +6,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk";
+import { jsonrepair } from "npm:jsonrepair";
 
 // ---------------------------------------------------------------------------
 // Prompts
@@ -92,9 +93,13 @@ function extractJson(text: string): unknown {
   const stripped = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "");
   const match = stripped.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("No JSON object found in response");
-  // Fix common model JSON errors: trailing commas before } or ]
-  const cleaned = match[0].replace(/,(\s*[}\]])/g, "$1");
-  return JSON.parse(cleaned);
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    // Model often produces trailing commas, unescaped chars, truncated output — repair before failing
+    const repaired = jsonrepair(match[0]);
+    return JSON.parse(repaired);
+  }
 }
 
 // ---------------------------------------------------------------------------
