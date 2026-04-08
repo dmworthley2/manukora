@@ -404,6 +404,20 @@ Deno.serve(async (req: Request) => {
 
   try {
     await runAgentLoop(anthropic, supabase, blackboardId, systemPrompt, taskPrompt);
+
+    // Mark the briefing as final as soon as the analyst draft is complete.
+    // The orchestrator may be killed by the edge function wall-clock timeout before
+    // it can set this itself, leaving sections in the DB but is_final=false forever.
+    if (mode === "draft") {
+      const { error: finalErr } = await supabase
+        .from("briefing_blackboard")
+        .update({ is_final: true, overall_status: "analyst_complete" })
+        .eq("id", blackboardId);
+      if (finalErr) {
+        console.error(`Failed to set is_final: ${finalErr.message}`);
+      }
+    }
+
     return new Response(JSON.stringify({ status: "done", mode, blackboardId }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
