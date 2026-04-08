@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST",
-        "Access-Control-Allow-Headers": "authorization, content-type, x-briefing-secret",
+        "Access-Control-Allow-Headers": "content-type",
       },
     });
   }
@@ -119,24 +119,12 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  const briefingSecret = Deno.env.get("BRIEFING_WORKER_SECRET");
 
   if (!supabaseUrl || !serviceRoleKey || !anthropicApiKey) {
     return new Response(JSON.stringify({ error: "Missing environment variables" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
-  }
-
-  // Verify shared secret (protects the function since JWT verification is disabled)
-  if (briefingSecret) {
-    const provided = req.headers.get("x-briefing-secret");
-    if (provided !== briefingSecret) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
   }
 
   let reportRunId: string | undefined;
