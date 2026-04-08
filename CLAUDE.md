@@ -139,6 +139,14 @@
 
 ---
 
+## Development Workflow
+
+For any non-trivial change, invoke the `dev-workflow` skill before writing implementation code. This applies to new features, refactors, multi-file changes, and prompt/agent changes.
+
+**Exception:** Single-file bug fixes where the problem and fix are both unambiguous may skip the skill and be fixed directly. If there is any doubt about root cause or side effects across other files, the skill applies.
+
+---
+
 # Git Guidelines
 
 When writing commit messages, strictly use standard formatting and NEVER include a "Co-authored-by" attribution or any AI signatures.
