@@ -1,0 +1,57 @@
+<h2>How the Tool-Use Loop Works</h2>
+<p class="subtitle">What makes these agents — not pipeline steps</p>
+
+<div style="font-family: monospace; font-size: 13px; line-height: 1.8; background: #1c1c16; color: #f0ead6; padding: 28px 32px; border-radius: 6px; margin: 16px 0;">
+
+<div style="color:#a0c878;margin-bottom:8px;">// Each agent function runs this loop</div>
+<div>let iterations = 0</div>
+<div>let messages = [{ role: "user", content: task_prompt }]</div>
+<br/>
+<div>while (iterations &lt; 2) {</div>
+<div style="padding-left:24px;">const response = await anthropic.messages.create({</div>
+<div style="padding-left:48px;">model, system_prompt, tools, messages</div>
+<div style="padding-left:24px;">})</div>
+<br/>
+<div style="padding-left:24px;color:#888;">// Agent chose to stop — satisfied with its work</div>
+<div style="padding-left:24px;">if (response.stop_reason === <span style="color:#ffd27a;">"end_turn"</span>) break</div>
+<br/>
+<div style="padding-left:24px;color:#888;">// Agent called tools — execute them, feed results back</div>
+<div style="padding-left:24px;">const tool_results = await executeTools(response.content)</div>
+<div style="padding-left:24px;">messages.push(</div>
+<div style="padding-left:48px;">{ role: "assistant", content: response.content },</div>
+<div style="padding-left:48px;">{ role: "user", content: tool_results }</div>
+<div style="padding-left:24px;">)</div>
+<div style="padding-left:24px;">iterations++</div>
+<div>}</div>
+
+</div>
+
+<div class="section">
+  <h3>What this enables</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;">
+
+    <div style="background:#f9f5eb;border-radius:6px;padding:16px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#775a00;margin-bottom:8px;">Analyst — Draft Mode</div>
+      <div style="font-size:13px;color:#4d4635;line-height:1.7;">
+        <b>Pass 1:</b> Calls query_inventory + query_sales. Reasons over data. Calls submit_section for each of the 5 sections.<br/><br/>
+        <b>Pass 2:</b> Calls read_my_sections + read_past_challenges. Reviews what it wrote. If it finds a gap — revises. Calls submit_section again to overwrite. Then stops.
+      </div>
+    </div>
+
+    <div style="background:#f0f4ff;border-radius:6px;padding:16px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#3f6653;margin-bottom:8px;">Auditor — Review Mode</div>
+      <div style="font-size:13px;color:#4d4635;line-height:1.7;">
+        <b>Pass 1:</b> Calls read_analyst_sections + query_inventory + query_sales. Cross-references claims against data. Calls submit_challenge or approve_section per section.<br/><br/>
+        <b>Pass 2:</b> Calls read_analyst_sections again to check for anything missed. If satisfied — stops. If not — revises challenges.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px;">
+  <h3>The key difference from the current pipeline</h3>
+  <div style="font-size:13px;color:#4d4635;line-height:1.7;">
+    In the current design, the orchestrator decides what data to send and when to stop. In this design, <b>the agent decides</b> — it chooses which tools to call, in what order, and signals done by returning without tool calls. The orchestrator just enforces the 2-pass ceiling.
+  </div>
+</div>

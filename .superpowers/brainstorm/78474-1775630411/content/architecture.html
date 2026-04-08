@@ -1,0 +1,49 @@
+<h2>Agent Architecture — Option A</h2>
+<p class="subtitle">Three edge functions. Two true agents. One orchestrator.</p>
+
+<div style="font-family: monospace; font-size: 13px; line-height: 1.8; background: #1c1c16; color: #f0ead6; padding: 28px 32px; border-radius: 6px; margin: 16px 0;">
+
+<div style="color:#a0c878;margin-bottom:4px;">── FRONTEND ──────────────────────────────────────────</div>
+<div style="padding-left:16px;">POST /api/briefings/generate</div>
+<div style="padding-left:32px; color:#888;">↓ calls</div>
+
+<div style="color:#a0c878;margin:12px 0 4px;">── EDGE FUNCTION: briefing-orchestrator ─────────────</div>
+<div style="padding-left:16px;">1. Create blackboard (DB)</div>
+<div style="padding-left:16px;">2. Invoke <span style="color:#ffd27a;">analyst-agent</span>  <span style="color:#888;">(mode: draft)</span></div>
+<div style="padding-left:32px; color:#888;">↓ waits for completion</div>
+<div style="padding-left:16px;">3. Invoke <span style="color:#7ab8ff;">auditor-agent</span></div>
+<div style="padding-left:32px; color:#888;">↓ waits for completion</div>
+<div style="padding-left:16px;">4. Invoke <span style="color:#ffd27a;">analyst-agent</span>  <span style="color:#888;">(mode: respond)</span></div>
+<div style="padding-left:32px; color:#888;">↓ waits for completion</div>
+<div style="padding-left:16px;">5. Finalize blackboard → is_final = true</div>
+<br/>
+
+<div style="color:#ffd27a;margin:12px 0 4px;">── EDGE FUNCTION: analyst-agent ─────────────────────</div>
+<div style="padding-left:16px; color:#888;">Tool-use loop (max 2 passes)</div>
+<div style="padding-left:16px;">Tools available:</div>
+<div style="padding-left:32px;">• query_inventory()           <span style="color:#888;">→ agent_reasoning_feed</span></div>
+<div style="padding-left:32px;">• query_sales()               <span style="color:#888;">→ sales_history</span></div>
+<div style="padding-left:32px;">• read_my_sections()          <span style="color:#888;">→ own submitted sections</span></div>
+<div style="padding-left:32px;">• read_past_challenges()      <span style="color:#888;">→ auditor history across runs</span></div>
+<div style="padding-left:32px;">• submit_section(id, content) <span style="color:#888;">→ briefing_section</span></div>
+<div style="padding-left:32px;">• submit_response(id, ...)    <span style="color:#888;">→ briefing_section (respond mode)</span></div>
+<br/>
+
+<div style="color:#7ab8ff;margin:12px 0 4px;">── EDGE FUNCTION: auditor-agent ─────────────────────</div>
+<div style="padding-left:16px; color:#888;">Tool-use loop (max 2 passes)</div>
+<div style="padding-left:16px;">Tools available:</div>
+<div style="padding-left:32px;">• query_inventory()           <span style="color:#888;">→ agent_reasoning_feed</span></div>
+<div style="padding-left:32px;">• query_sales()               <span style="color:#888;">→ sales_history</span></div>
+<div style="padding-left:32px;">• read_analyst_sections()     <span style="color:#888;">→ briefing_section</span></div>
+<div style="padding-left:32px;">• submit_challenge(id, ...)   <span style="color:#888;">→ briefing_section</span></div>
+<div style="padding-left:32px;">• approve_section(id)         <span style="color:#888;">→ briefing_section</span></div>
+<br/>
+
+<div style="color:#a0c878;margin:12px 0 4px;">── DATABASE (shared blackboard) ──────────────────────</div>
+<div style="padding-left:16px;">briefing_blackboard   <span style="color:#888;">← orchestrator reads/writes status</span></div>
+<div style="padding-left:16px;">briefing_section      <span style="color:#888;">← agents read/write content</span></div>
+<div style="padding-left:16px;">briefing_audit_trail  <span style="color:#888;">← past challenges (analyst reads)</span></div>
+
+</div>
+
+<p style="font-size:13px;color:#666;margin-top:16px;">The DB is the shared blackboard — agents communicate by writing to it, not by calling each other directly. The orchestrator reads DB state between each agent invocation.</p>

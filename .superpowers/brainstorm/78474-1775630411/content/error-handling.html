@@ -1,0 +1,48 @@
+<h2>Error Handling & Failure Modes</h2>
+<p class="subtitle">What happens when an agent fails, times out, or produces nothing</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;">
+
+  <div style="background:#fff8f0;border:1px solid #f0d0a0;border-radius:6px;padding:20px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#b35c00;margin-bottom:12px;">⚡ Analyst fails to submit sections</div>
+    <div style="font-size:13px;color:#4d4635;line-height:1.7;">
+      Orchestrator checks briefing_section count after analyst-agent returns. If 0 sections: mark blackboard <code>overall_status: "failed"</code>, <code>is_final: true</code>. Frontend shows error state. No auditor invoked.
+    </div>
+  </div>
+
+  <div style="background:#fff8f0;border:1px solid #f0d0a0;border-radius:6px;padding:20px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#b35c00;margin-bottom:12px;">⚡ Auditor fails to review</div>
+    <div style="font-size:13px;color:#4d4635;line-height:1.7;">
+      Orchestrator checks for any auditor activity after auditor-agent returns. If none: auto-approve all sections (<code>auditor_status: "approved"</code>, <code>is_approved: true</code>). Briefing finalizes without challenges. Degraded but functional.
+    </div>
+  </div>
+
+  <div style="background:#fff8f0;border:1px solid #f0d0a0;border-radius:6px;padding:20px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#b35c00;margin-bottom:12px;">⚡ Agent exceeds 2-pass cap</div>
+    <div style="font-size:13px;color:#4d4635;line-height:1.7;">
+      Loop exits after iteration 2 regardless of stop_reason. Whatever the agent has written to the DB at that point is used. Orchestrator logs a warning: "Agent capped at max iterations."
+    </div>
+  </div>
+
+  <div style="background:#fff8f0;border:1px solid #f0d0a0;border-radius:6px;padding:20px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#b35c00;margin-bottom:12px;">⚡ Anthropic API error mid-loop</div>
+    <div style="font-size:13px;color:#4d4635;line-height:1.7;">
+      Agent function catches the error and returns whatever it has committed to the DB. Orchestrator treats partial output as valid and continues. If nothing was committed: orchestrator marks blackboard failed.
+    </div>
+  </div>
+
+  <div style="background:#fff8f0;border:1px solid #f0d0a0;border-radius:6px;padding:20px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#b35c00;margin-bottom:12px;">⚡ Edge function timeout</div>
+    <div style="font-size:13px;color:#4d4635;line-height:1.7;">
+      Supabase edge functions have a 150s wall-clock limit. Orchestrator invokes agents via <code>supabase.functions.invoke()</code> sequentially — each agent has ~40s budget. If a function times out, the orchestrator catches the error and proceeds with partial data.
+    </div>
+  </div>
+
+  <div style="background:#f0fff4;border:1px solid #a0d0b0;border-radius:6px;padding:20px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#2e7d32;margin-bottom:12px;">✓ Always-final guarantee</div>
+    <div style="font-size:13px;color:#4d4635;line-height:1.7;">
+      Orchestrator wraps the full pipeline in try/finally. The finally block always sets <code>is_final: true</code> — even on total failure. Frontend never polls forever. The status field tells the UI what to show.
+    </div>
+  </div>
+
+</div>

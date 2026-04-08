@@ -1,0 +1,40 @@
+<h2>Three Agent Architecture Approaches</h2>
+<p class="subtitle">How should the analyst and auditor be structured as goal-oriented agents?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Orchestrator + Tool-Loop Agents <span style="font-size:11px;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:4px;margin-left:8px;">Recommended</span></h3>
+      <p>A lightweight <code>briefing-orchestrator</code> coordinates three separate edge functions. <code>analyst-agent</code> and <code>auditor-agent</code> each run a real tool-use loop — they decide which tools to call (query inventory, query sales, read sections, read past challenges), reason over results, and decide when they're done. Loop caps at 2 iterations.</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>True agentic behaviour</li><li>2-pass cap maps cleanly to loop limit</li><li>Each agent is independently testable</li><li>Orchestrator is simple and auditable</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>3 edge functions to deploy</li><li>More moving parts</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Event-Driven Autonomous Agents</h3>
+      <p>No orchestrator. Each agent is triggered by DB state changes via Supabase webhooks. Analyst fires on new blackboard → writes sections → sets status. Auditor fires on status change → queries data, challenges → sets status. Analyst fires again on "challenged". Agents are fully decoupled.</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Most autonomous design</li><li>No coordination code</li><li>Naturally parallelisable</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>2-pass cap is hard to enforce reliably</li><li>Debugging event chains is painful</li><li>Race conditions possible</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Single Function, Multi-Turn Conversations</h3>
+      <p>Keep one edge function but give each agent a persistent multi-turn conversation history. The orchestrator maintains conversation state and feeds prior reasoning back to the model. Agents can "remember" what they said and refine — without separate deployments.</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Least infrastructure change</li><li>Conversation history gives context</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Agents not truly separated</li><li>Context window grows with iterations</li><li>Doesn't deliver the separation you asked for</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

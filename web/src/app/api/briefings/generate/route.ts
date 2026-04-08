@@ -1,6 +1,6 @@
 /**
  * POST /api/briefings/generate
- * Triggers the briefing-worker edge function to analyse all inventory data.
+ * Triggers the briefing-orchestrator edge function to analyse all inventory data.
  * Returns the reportRunId to poll against.
  */
 export async function POST() {
@@ -25,8 +25,8 @@ export async function POST() {
     const reportRunId = latestRun.id as string;
 
     // Invoke edge function — responds 202 immediately, processes in background
-    console.log(`[Generate] Invoking briefing-worker for report run ${reportRunId}`);
-    const { error: invokeError } = await client.functions.invoke("briefing-worker", {
+    console.log(`[Generate] Invoking briefing-orchestrator for report run ${reportRunId}`);
+    const { error: invokeError } = await client.functions.invoke("briefing-orchestrator", {
       body: { reportRunId },
     });
 
