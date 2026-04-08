@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown, TrendingUp, AlertCircle, TrendingDown, Sparkles } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
@@ -126,7 +126,14 @@ export default function ExecutiveSummaryContent() {
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
   const [pollAttempts, setPollAttempts] = useState(0);
 
+  // Tracks the cancel function for the currently active poll so new polls
+  // cancel the old one rather than running simultaneously.
+  const pollCancelRef = useRef<(() => void) | undefined>(undefined);
+
   const startPolling = useCallback((runId: string) => {
+    // Cancel any in-flight poll before starting a new one.
+    pollCancelRef.current?.();
+
     setLoading(true);
     setError(null);
     setBriefing(null);
@@ -134,6 +141,9 @@ export default function ExecutiveSummaryContent() {
 
     let attempt = 0;
     let cancelled = false;
+
+    const cancel = () => { cancelled = true; };
+    pollCancelRef.current = cancel;
 
     const fetchBriefing = async (): Promise<boolean> => {
       try {
@@ -178,12 +188,10 @@ export default function ExecutiveSummaryContent() {
         const ready = await fetchBriefing();
         if (ready) clearInterval(interval);
       }, POLL_INTERVAL_MS);
-
-      return () => { cancelled = true; clearInterval(interval); };
     };
 
     poll();
-    return () => { cancelled = true; };
+    return cancel;
   }, []);
 
   const handleRetrieve = useCallback(async () => {
@@ -229,10 +237,11 @@ export default function ExecutiveSummaryContent() {
     }
   }, [startPolling]);
 
-  // On mount: if we have a reportRunId from URL or context, try to load existing briefing
+  // On mount: if we have a reportRunId from URL or context, try to load existing briefing.
+  // Return the cancel function so React tears down the poll if reportRunId changes.
   useEffect(() => {
     if (!reportRunId) return;
-    startPolling(reportRunId);
+    return startPolling(reportRunId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportRunId]);
 
