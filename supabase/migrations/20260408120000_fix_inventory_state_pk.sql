@@ -1,8 +1,25 @@
--- Recreate inventory_state with a proper surrogate PK so sku is a plain FK
--- Drop view first (it depends on inventory_state)
-DROP VIEW IF EXISTS public.agent_reasoning_feed;
-DROP TABLE IF EXISTS public.inventory_state;
+-- Rebuild inventory tables from scratch in dependency order.
+-- All three tables are truncated before every upload so there is no data to preserve.
 
+DROP VIEW IF EXISTS public.agent_reasoning_feed;
+DROP TABLE IF EXISTS public.sales_history;
+DROP TABLE IF EXISTS public.inventory_state;
+DROP TABLE IF EXISTS public.product_catalog;
+
+-- MASTER PRODUCT DATA
+CREATE TABLE public.product_catalog (
+  sku VARCHAR(255) PRIMARY KEY,
+  product_category VARCHAR(100),
+  product_name VARCHAR(500),
+  mgo_rating INTEGER,
+  retail_price_usd DECIMAL(10, 2),
+  target_months_cover INTEGER DEFAULT 2,
+  product_notes VARCHAR(500),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- CURRENT INVENTORY STATE
+-- inventory_state_id is the surrogate PK; sku is a unique FK to product_catalog
 CREATE TABLE public.inventory_state (
   inventory_state_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sku VARCHAR(255) NOT NULL UNIQUE REFERENCES public.product_catalog(sku) ON DELETE CASCADE,
@@ -12,9 +29,24 @@ CREATE TABLE public.inventory_state (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS inventory_state_sku_idx ON public.inventory_state (sku);
+-- HISTORICAL SALES BY CHANNEL & MONTH
+CREATE TABLE public.sales_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sku VARCHAR(255) NOT NULL REFERENCES public.product_catalog(sku) ON DELETE CASCADE,
+  channel VARCHAR(50) NOT NULL,
+  month_period INTEGER NOT NULL,
+  units_sold INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(sku, channel, month_period)
+);
 
--- Recreate the semantic reasoning view
+-- INDEXES
+CREATE INDEX IF NOT EXISTS inventory_state_sku_idx ON public.inventory_state (sku);
+CREATE INDEX IF NOT EXISTS sales_history_sku_idx ON public.sales_history (sku);
+CREATE INDEX IF NOT EXISTS sales_history_sku_channel_idx ON public.sales_history (sku, channel);
+CREATE INDEX IF NOT EXISTS sales_history_period_idx ON public.sales_history (month_period);
+
+-- SEMANTIC REASONING VIEW
 CREATE OR REPLACE VIEW public.agent_reasoning_feed AS
 WITH sales_summary AS (
   SELECT
@@ -49,5 +81,10 @@ FROM public.product_catalog p
 JOIN sales_summary s ON p.sku = s.sku
 JOIN public.inventory_state i ON p.sku = i.sku;
 
--- Reload PostgREST schema cache so FK relationships are discoverable
+-- RLS
+ALTER TABLE public.product_catalog ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inventory_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sales_history ENABLE ROW LEVEL SECURITY;
+
+-- Reload PostgREST schema cache so FK joins are discoverable immediately
 NOTIFY pgrst, 'reload schema';
