@@ -1,6 +1,6 @@
 /**
  * Supabase Edge Function: briefing-worker
- * Queries inventory tables directly, runs analyst → auditor pipeline.
+ * Queries inventory tables directly, runs analyst -> auditor pipeline.
  * Triggered via POST from /api/briefings/generate.
  */
 
