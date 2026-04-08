@@ -140,8 +140,10 @@ export async function POST(req: Request) {
           throw new Error(`Sales history insert failed: ${salesResult.error}`);
         }
 
-        // Query reasoning feed for agent use
-        inventoryReasoningFeed = await inventory.queryAgentReasoningFeed(client);
+        // Query reasoning feed and filter to only SKUs from this upload
+        const fullFeed = await inventory.queryAgentReasoningFeed(client);
+        const uploadSkus = new Set(inventoryData.products.map((p) => p.sku));
+        inventoryReasoningFeed = fullFeed ? fullFeed.filter((row) => uploadSkus.has(row.sku)) : null;
 
         // Enrich fact bundle with inventory analysis if successful
         if (result.factBundle && inventoryReasoningFeed && inventoryReasoningFeed.length > 0) {
