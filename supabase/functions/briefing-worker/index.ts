@@ -157,21 +157,34 @@ Deno.serve(async (req: Request) => {
     if (bbError) throw new Error(`Blackboard insert failed: ${bbError.message}`);
 
     const blackboardId = blackboard.id as string;
-    const inventoryContext = JSON.stringify(inventoryReasoningFeed ?? []);
-    const factBundleContext = JSON.stringify(factBundle ?? {});
+
+    // Truncate context to avoid exceeding model token limits (~150K chars ≈ ~40K tokens)
+    const MAX_CONTEXT_CHARS = 60_000;
+    const inventoryContext = JSON.stringify(inventoryReasoningFeed ?? []).slice(0, MAX_CONTEXT_CHARS);
+    const factBundleContext = JSON.stringify(factBundle ?? {}).slice(0, MAX_CONTEXT_CHARS);
+
+    console.log(`Calling Anthropic analyst for blackboard ${blackboardId}, context sizes: factBundle=${factBundleContext.length}, inventory=${inventoryContext.length}`);
 
     // 2. Analyst pass
-    const analystMessage = await anthropic.messages.create({
-      model: "claude-3-5-haiku-20241022",
-      max_tokens: 4096,
-      system: ANALYST_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `Period: ${period}\n\nFact Bundle:\n${factBundleContext}\n\nInventory Context:\n${inventoryContext}\n\nGenerate the 5-section briefing.`,
-        },
-      ],
-    });
+    let analystMessage;
+    try {
+      analystMessage = await anthropic.messages.create({
+        model: "claude-3-5-haiku-20241022",
+        max_tokens: 4096,
+        system: ANALYST_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: `Period: ${period}\n\nFact Bundle:\n${factBundleContext}\n\nInventory Context:\n${inventoryContext}\n\nGenerate the 5-section briefing.`,
+          },
+        ],
+      });
+    } catch (anthropicErr) {
+      const msg = anthropicErr instanceof Error ? anthropicErr.message : String(anthropicErr);
+      console.error(`Anthropic analyst call failed: ${msg}`);
+      await supabase.from("briefing_blackboard").update({ overall_status: "failed", is_final: true }).eq("id", blackboardId);
+      throw anthropicErr;
+    }
 
     const analystText =
       analystMessage.content[0]?.type === "text" ? analystMessage.content[0].text : "";
@@ -285,11 +298,12 @@ Deno.serve(async (req: Request) => {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`Briefing worker failed for ${reportRunId}:`, message);
+    console.error(`Briefing worker failed for ${reportRunId}: ${message}`);
 
     return new Response(
       JSON.stringify({ success: false, error: message }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
+
 });
