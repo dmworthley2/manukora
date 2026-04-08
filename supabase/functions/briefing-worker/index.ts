@@ -12,41 +12,33 @@ import { jsonrepair } from "npm:jsonrepair";
 // Prompts
 // ---------------------------------------------------------------------------
 
-const ANALYST_SYSTEM_PROMPT = `You are a Senior CFO-level financial analyst and supply chain strategist. Your job is to transform inventory data into a compelling executive briefing that REASONS through trade-offs and drives capital allocation decisions.
+const ANALYST_SYSTEM_PROMPT = `You are a Senior CFO-level financial analyst and supply chain strategist. Your job is to synthesize inventory positions AND sales velocity trends into a concise executive briefing that drives capital allocation decisions.
 
-Generate a 5-section briefing based on the inventory data provided:
+You will receive two datasets:
+- **Inventory Metrics** — current stock, days of cover, pricing per SKU
+- **Sales History** — units sold by SKU, channel, and month — use this to identify demand trends, seasonal patterns, and which SKUs are accelerating or declining
 
-1. **Executive Summary** — Headline: what needs immediate attention? Rank by revenue exposure and urgency.
-2. **Capital Allocation Strategy** — For each priority SKU: show data, inference, revenue impact, and action. Explain trade-offs.
-3. **Risk & Opportunity Flagging** — Flag high-revenue declining SKUs (manual review), growing SKUs with adequate cover (reserve capital), and special cases (Propolis phaseout, MGO 1700+ premium 3-month target, Bioactive Blends M2–M4 only).
-4. **Reorder Recommendations** — Ranked by: (1) urgency (cover <15 days), (2) revenue opportunity, (3) trend. Include SKU, quantity, urgency level, revenue at stake, and reasoning.
-5. **Next Steps** — Top 3 reorders for next 72 hours: what, from whom, by when. Assign decision owners.
+Generate a 5-section briefing that cross-references both datasets:
+
+1. **Executive Summary** — What needs immediate attention? Lead with the 2-3 highest-risk SKUs by combining low cover AND sales velocity.
+2. **Capital Allocation Strategy** — For the top priority SKUs: current cover, recent sales trend (accelerating/declining/flat), revenue at stake, and recommended action.
+3. **Risk & Opportunity Flagging** — SKUs where sales trend conflicts with current stock position (e.g. rising demand but low cover = urgent risk; falling demand with high cover = overstocked). Flag Propolis phaseout, MGO 1700+ 90-day target, Bioactive Blends M2-M4 trend only.
+4. **Reorder Recommendations** — Ranked by urgency. For each: SKU, days of cover, trend direction, recommended reorder quantity, and why now.
+5. **Next Steps** — Top 3 actions for the next 72 hours. Specific, assigned, time-bound.
 
 Rules:
+- TOTAL briefing must be under 500 words across all 5 sections combined. Be ruthlessly concise.
 - Do NOT invent SKUs or numbers. Use only data provided.
-- Include certainty factors for material claims: [CERTAINTY: HIGH (95%) | MEDIUM (75%) | LOW (40%)]
-- State assumptions explicitly (lead times, demand stability, capital availability).
-- Think like a CFO: prioritize by capital impact, flag conflicts, explain trade-offs.
+- Every claim about trend must cite the sales history months (e.g. "M2→M4: +40%").
+- Think like a CFO: prioritize by capital impact, flag the conflicts, skip the filler.`;
 
-Return a JSON object with this exact structure:
-{
-  "sections": [
-    { "id": "executive-summary", "title": "Executive Summary", "content": "..." },
-    { "id": "capital-allocation", "title": "Capital Allocation Strategy", "content": "..." },
-    { "id": "risk-opportunity", "title": "Risk & Opportunity Flagging", "content": "..." },
-    { "id": "reorder-recommendations", "title": "Reorder Recommendations", "content": "..." },
-    { "id": "next-steps", "title": "Next Steps", "content": "..." }
-  ],
-  "generatedAt": "ISO-8601 timestamp"
-}`;
-
-const AUDITOR_SYSTEM_PROMPT = `You are a Senior CFO auditor. Fact-check the briefing against the Inventory Context provided.
+const AUDITOR_SYSTEM_PROMPT = `You are a Lead in Accounting reviewing an executive briefing before it goes to the CFO. You have two jobs: verify the numbers are accurate, and validate that the overall message is clear, honest, and appropriate for a senior audience.
 
 Check:
-1. **Numerical accuracy** — Verify revenue (price × units), days of cover, trends. Reject if >5% off.
-2. **Hallucinations** — Every SKU and fact must exist in Inventory Context.
-3. **Assumptions** — Surface unstated assumptions (lead times, demand stability, order quantities).
-4. **Trade-offs** — Challenge unexplained priority choices.
+1. **Numerical accuracy** — Verify revenue (price × units), days of cover, and cited sales trends against the inventory and sales data. Flag if >5% off.
+2. **Data integrity** — Every SKU, figure, and trend claim must be traceable to the provided data. Flag anything that cannot be verified.
+3. **Messaging quality** — Is the briefing clear and direct? Flag vague language, buried urgency, or recommendations that don't follow from the data.
+4. **Unstated assumptions** — Surface any assumptions the analyst made but didn't disclose (lead times, demand stability, reorder quantities).
 5. **Policy compliance** — Propolis: deprioritize unless cover <30 days. MGO 1700+: use 3-month (90 day) target. Bioactive Blends: trend is M2–M4 only (launched mid-Jan 2026).
 
 Return a JSON object:
@@ -82,6 +74,64 @@ type AuditorResult = {
   hasIssues: boolean;
   challenges: unknown[];
   summary: string;
+};
+
+// ---------------------------------------------------------------------------
+// Tool schemas for structured output (guarantees valid JSON from the API)
+// ---------------------------------------------------------------------------
+
+const ANALYST_TOOL = {
+  name: "generate_briefing",
+  description: "Generate a structured 5-section executive briefing from inventory data.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      sections: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            content: { type: "string" },
+          },
+          required: ["id", "title", "content"],
+        },
+      },
+      generatedAt: { type: "string" },
+    },
+    required: ["sections", "generatedAt"],
+  },
+};
+
+const AUDITOR_TOOL = {
+  name: "audit_briefing",
+  description: "Audit a briefing against inventory data and return structured findings.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      approved: { type: "boolean" },
+      hasIssues: { type: "boolean" },
+      challenges: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            type: { type: "string" },
+            section: { type: "string" },
+            claim: { type: "string" },
+            question: { type: "string" },
+            severity: { type: "string" },
+            requestedAction: { type: "string" },
+          },
+          required: ["id", "type", "section", "claim", "question", "severity", "requestedAction"],
+        },
+      },
+      summary: { type: "string" },
+    },
+    required: ["approved", "hasIssues", "challenges", "summary"],
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -205,13 +255,15 @@ async function runBriefing(
 
   console.log(`Analyst call for blackboard ${blackboardId}`);
 
-  // 4. Analyst pass
+  // 4. Analyst pass — use tool_use to guarantee valid structured JSON output
   let analystMessage;
   try {
     analystMessage = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 16000,
+      max_tokens: 8192,
       system: ANALYST_SYSTEM_PROMPT,
+      tools: [ANALYST_TOOL],
+      tool_choice: { type: "tool", name: "generate_briefing" },
       messages: [{
         role: "user",
         content: `Inventory Metrics (per SKU):\n${inventoryContext}\n\nSales History:\n${salesContext}\n\nGenerate the 5-section briefing.`,
@@ -224,13 +276,23 @@ async function runBriefing(
     throw err;
   }
 
-  const analystText = analystMessage.content[0]?.type === "text" ? analystMessage.content[0].text : "";
+  // Extract from tool_use block (always valid JSON), fall back to text extraction
   let analystSections: AnalystSection[] = [];
-  try {
-    const parsed = extractJson(analystText) as { sections?: AnalystSection[] };
-    analystSections = parsed.sections ?? [];
-  } catch (err) {
-    console.error("Failed to parse analyst response:", err);
+  const toolUseBlock = analystMessage.content.find((b) => b.type === "tool_use");
+  if (toolUseBlock && toolUseBlock.type === "tool_use") {
+    const input = toolUseBlock.input as { sections?: AnalystSection[] };
+    analystSections = input.sections ?? [];
+  } else {
+    // Fallback: try text parsing
+    const analystText = analystMessage.content.find((b) => b.type === "text")?.type === "text"
+      ? (analystMessage.content.find((b) => b.type === "text") as { type: "text"; text: string }).text
+      : "";
+    try {
+      const parsed = extractJson(analystText) as { sections?: AnalystSection[] };
+      analystSections = parsed.sections ?? [];
+    } catch (err) {
+      console.error("Failed to parse analyst response:", err);
+    }
   }
 
   // 5. Insert sections
@@ -250,24 +312,34 @@ async function runBriefing(
     if (sectionsError) console.error("Sections insert failed:", sectionsError.message);
   }
 
-  // 6. Auditor pass
+  // 6. Auditor pass — use tool_use for guaranteed valid JSON
   const sectionsText = analystSections.map((s) => `## ${s.title}\n${s.content}`).join("\n\n");
   const auditorMessage = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 2048,
     system: AUDITOR_SYSTEM_PROMPT,
+    tools: [AUDITOR_TOOL],
+    tool_choice: { type: "tool", name: "audit_briefing" },
     messages: [{
       role: "user",
       content: `Inventory Context:\n${inventoryContext}\n\nBriefing to audit:\n${sectionsText}\n\nAudit this briefing.`,
     }],
   });
 
-  const auditorText = auditorMessage.content[0]?.type === "text" ? auditorMessage.content[0].text : "";
   let auditorResult: AuditorResult = { approved: true, hasIssues: false, challenges: [], summary: "Approved" };
-  try {
-    auditorResult = extractJson(auditorText) as AuditorResult;
-  } catch (err) {
-    console.error("Failed to parse auditor response:", err);
+  const auditorToolBlock = auditorMessage.content.find((b) => b.type === "tool_use");
+  if (auditorToolBlock && auditorToolBlock.type === "tool_use") {
+    auditorResult = auditorToolBlock.input as AuditorResult;
+  } else {
+    // Fallback: try text parsing
+    const auditorText = auditorMessage.content.find((b) => b.type === "text")?.type === "text"
+      ? (auditorMessage.content.find((b) => b.type === "text") as { type: "text"; text: string }).text
+      : "";
+    try {
+      auditorResult = extractJson(auditorText) as AuditorResult;
+    } catch (err) {
+      console.error("Failed to parse auditor response:", err);
+    }
   }
 
   // 7. Update sections with auditor verdict
