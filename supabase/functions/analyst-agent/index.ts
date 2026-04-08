@@ -81,6 +81,8 @@ Rules:
 - Do not repeat SKU-level detail across sections — each section earns its place with unique analysis.
 - Section IDs must be exactly: executive-summary, capital-allocation, risk-opportunity, reorder-recommendations, next-steps.
 
+For each section, populate the reasoning field with your chain-of-thought: which data signals drove your primary conclusions, what alternatives you considered and discarded, and any assumptions underpinning your analysis. 2–4 sentences. This is an operator audit trail — it is not part of the published briefing.
+
 Call query_inventory and query_sales first, then write your sections.
 
 When you are satisfied with your briefing, stop calling tools. The loop ends when you return without a tool call.`;
@@ -136,8 +138,12 @@ const ANALYST_TOOLS: Anthropic.Tool[] = [
         },
         title: { type: "string" },
         content: { type: "string" },
+        reasoning: {
+          type: "string",
+          description: "Your chain-of-thought for this section: which data points drove your conclusions, what you considered and discarded, and any assumptions or uncertainty. 2–4 sentences.",
+        },
       },
-      required: ["section_id", "title", "content"],
+      required: ["section_id", "title", "content", "reasoning"],
     },
   },
   {
@@ -227,6 +233,7 @@ async function executeTool(
     const section_id = typeof toolInput.section_id === "string" ? toolInput.section_id : null;
     const title = typeof toolInput.title === "string" ? toolInput.title : null;
     const content = typeof toolInput.content === "string" ? toolInput.content : null;
+    const reasoning = typeof toolInput.reasoning === "string" ? toolInput.reasoning : null;
     if (!section_id || !title || !content) return `submit_section: missing required fields`;
     const now = new Date().toISOString();
     const { error } = await supabase.from("briefing_section").upsert({
@@ -234,6 +241,7 @@ async function executeTool(
       section_id,
       title,
       analyst_draft: content,
+      analyst_reasoning: reasoning,
       analyst_submitted_at: now,
       auditor_status: "pending",
       is_approved: false,

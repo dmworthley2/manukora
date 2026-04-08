@@ -451,6 +451,17 @@ export default function ExecutiveSummaryContent() {
                       {section.analyst_draft}
                     </ReactMarkdown>
                   </div>
+                  {section.analyst_reasoning?.trim() && (
+                    <details className="group mt-6 pt-6 border-t border-[#d0c5af]/30">
+                      <summary className="list-none cursor-pointer flex items-center gap-2 text-[10px] font-bold text-[#775a00] uppercase tracking-widest hover:underline">
+                        <span>Reasoning</span>
+                        <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+                      </summary>
+                      <div className="mt-4 bg-[#fdf9ef]/70 p-4 rounded-sm text-xs text-[#4d4635] leading-relaxed">
+                        {section.analyst_reasoning}
+                      </div>
+                    </details>
+                  )}
                 </div>
               );
             })}
