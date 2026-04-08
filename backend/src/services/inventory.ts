@@ -31,9 +31,11 @@ export async function upsertProductCatalog(
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = products.map(({ upload_id: _u, ...rest }: any) => rest);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (client
       .from("product_catalog")
-      .upsert(products as any[], { onConflict: "sku,upload_id" }) as any);
+      .upsert(rows, { onConflict: "sku" }) as any);
 
     if (error) {
       log.error("product_catalog.upsert failed", { errorMessage: error.message });
@@ -67,9 +69,11 @@ export async function upsertInventoryState(
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = inventory.map(({ upload_id: _u, ...rest }: any) => rest);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (client
       .from("inventory_state")
-      .upsert(inventory as any[], { onConflict: "sku,upload_id" }) as any);
+      .upsert(rows, { onConflict: "sku" }) as any);
 
     if (error) {
       log.error("inventory_state.upsert failed", { errorMessage: error.message });
@@ -104,9 +108,11 @@ export async function insertSalesHistory(
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = sales.map(({ upload_id: _u, ...rest }: any) => rest);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error, data } = await (client
       .from("sales_history")
-      .upsert(sales as any[], { onConflict: "sku,channel,month_period,upload_id" }) as any)
+      .upsert(rows, { onConflict: "sku,channel,month_period" }) as any)
       .select();
 
     if (error) {
