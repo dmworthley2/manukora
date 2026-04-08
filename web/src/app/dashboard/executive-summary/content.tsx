@@ -95,9 +95,9 @@ const REPORTING_SECTION_ORDER = [
   "next-steps",
 ] as const;
 
-// Poll every 5 seconds for up to 2 minutes (24 attempts)
+// Poll every 5 seconds for up to 5 minutes (60 attempts)
 const POLL_INTERVAL_MS = 5000;
-const MAX_POLL_ATTEMPTS = 24;
+const MAX_POLL_ATTEMPTS = 60;
 
 function BriefingSkeleton() {
   return (

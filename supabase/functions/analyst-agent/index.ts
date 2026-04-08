@@ -399,7 +399,7 @@ Deno.serve(async (req: Request) => {
 
   const systemPrompt = mode === "draft" ? ANALYST_DRAFT_SYSTEM_PROMPT : ANALYST_RESPOND_SYSTEM_PROMPT;
   const taskPrompt = mode === "draft"
-    ? `You are writing the briefing for report run ${reportRunId} (blackboard: ${blackboardId}). Start by calling query_inventory and query_sales to get the data. Then write and submit all 5 sections. On your second pass, call read_my_sections and read_past_challenges to review your work — revise anything that needs improvement, then stop.`
+    ? `You are writing the briefing for report run ${reportRunId} (blackboard: ${blackboardId}). Start by calling query_inventory and query_sales to get the data. Then write and submit all 5 sections. When all 5 sections are submitted, stop.`
     : `You are responding to auditor challenges for report run ${reportRunId} (blackboard: ${blackboardId}). Call read_my_sections to see your sections and the challenges raised. For each challenged section, call submit_response with your decision to incorporate or reject the challenge. When done, stop.`;
 
   try {

@@ -1,5 +1,7 @@
 # Manukora Development Standards
 
+> **Session start:** Read `docs/architecture.md` first for a full technical picture of the application — languages, patterns, data flow, and key invariants.
+
 ## Frontend Requirements
 
 ### 1. Shadcn/UI Foundation (Required)
