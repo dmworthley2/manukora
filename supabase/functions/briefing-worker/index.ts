@@ -88,9 +88,13 @@ type AuditorResult = {
 // ---------------------------------------------------------------------------
 
 function extractJson(text: string): unknown {
-  const match = text.match(/\{[\s\S]*\}/);
+  // Strip markdown code fences if present
+  const stripped = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "");
+  const match = stripped.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("No JSON object found in response");
-  return JSON.parse(match[0]);
+  // Fix common model JSON errors: trailing commas before } or ]
+  const cleaned = match[0].replace(/,(\s*[}\]])/g, "$1");
+  return JSON.parse(cleaned);
 }
 
 // ---------------------------------------------------------------------------
@@ -201,7 +205,7 @@ async function runBriefing(
   try {
     analystMessage = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 8192,
+      max_tokens: 16000,
       system: ANALYST_SYSTEM_PROMPT,
       messages: [{
         role: "user",
