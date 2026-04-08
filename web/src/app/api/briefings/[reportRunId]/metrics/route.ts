@@ -36,19 +36,16 @@ export async function GET(
 
     const period = reportRun.period; // "2026-04"
 
-    // Two separate queries to avoid PostgREST schema cache join issues
-    const [{ data: sales, error: salesError }, { data: catalog, error: catalogError }] =
-      await Promise.all([
-        client.from("sales_history").select("sku, units_sold"),
-        client.from("product_catalog").select("sku, retail_price_usd"),
-      ]);
+    // Join in Postgres via the FK relationship (product_catalog.sku -> sales_history.sku)
+    const { data: sales, error: salesError } = await client
+      .from("sales_history")
+      .select(`
+        sku,
+        units_sold,
+        product_catalog!inner(retail_price_usd)
+      `);
 
     if (salesError) throw new Error(`Query failed: ${salesError.message}`);
-    if (catalogError) throw new Error(`Query failed: ${catalogError.message}`);
-
-    const priceMap = new Map<string, number>(
-      (catalog ?? []).map((r) => [r.sku as string, (r.retail_price_usd as number) ?? 0]),
-    );
 
     // Calculate metrics
     let totalRevenue = 0;
@@ -57,7 +54,10 @@ export async function GET(
 
     for (const sale of sales ?? []) {
       const unitsSold = (sale.units_sold as number) || 0;
-      const price = priceMap.get(sale.sku as string) ?? 0;
+      const catalog = Array.isArray(sale.product_catalog)
+        ? sale.product_catalog[0]
+        : sale.product_catalog;
+      const price = (catalog?.retail_price_usd as number) ?? 0;
       totalRevenue += unitsSold * price;
       totalUnitsSold += unitsSold;
       uniqueSkus.add(sale.sku as string);
