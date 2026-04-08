@@ -169,7 +169,7 @@ Deno.serve(async (req: Request) => {
     let analystMessage;
     try {
       analystMessage = await anthropic.messages.create({
-        model: "claude-3-5-haiku-20241022",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 4096,
         system: ANALYST_SYSTEM_PROMPT,
         messages: [
@@ -226,7 +226,7 @@ Deno.serve(async (req: Request) => {
       .join("\n\n");
 
     const auditorMessage = await anthropic.messages.create({
-      model: "claude-3-5-haiku-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 2048,
       system: AUDITOR_SYSTEM_PROMPT,
       messages: [
