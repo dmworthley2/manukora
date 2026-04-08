@@ -1,20 +1,21 @@
 /**
  * Trigger briefing generation via Supabase Edge Function.
  * Fire-and-forget: Supabase handles the long-running work independently.
+ * JWT verification is disabled on the edge function; uses shared secret instead.
  */
 function triggerBriefingEdgeFunction(
   supabaseUrl: string,
-  serviceRoleKey: string,
   reportRunId: string,
   factBundle: unknown,
   period: string,
   inventoryReasoningFeed: unknown,
 ): void {
+  const secret = process.env.BRIEFING_WORKER_SECRET ?? "";
   fetch(`${supabaseUrl}/functions/v1/briefing-worker`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${serviceRoleKey}`,
+      "x-briefing-secret": secret,
     },
     body: JSON.stringify({ reportRunId, factBundle, period, inventoryReasoningFeed }),
   }).catch((err) => {
@@ -217,7 +218,6 @@ export async function POST(req: Request) {
     if (result.factBundle) {
       triggerBriefingEdgeFunction(
         env.SUPABASE_URL,
-        env.SUPABASE_SERVICE_ROLE_KEY,
         reportRun.id,
         result.factBundle,
         period,
