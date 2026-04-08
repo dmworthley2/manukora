@@ -145,11 +145,29 @@ export default function ExecutiveSummaryContent() {
     return () => { cancelled = true; };
   }, []);
 
-  const handleRetrieve = useCallback(() => {
-    const runId = activeReportRunId ?? reportRunId;
-    if (!runId) return;
-    startPolling(runId);
-  }, [activeReportRunId, reportRunId, startPolling]);
+  const handleRetrieve = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/briefings/latest");
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        setError(data.error ?? "No briefing found");
+        setLoading(false);
+        return;
+      }
+      const data = await res.json() as BriefingResponse;
+      setBriefing(data);
+      setLoading(false);
+      fetch(`/api/briefings/${data.reportRunId}/metrics`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d) setMetrics(d as MetricsResponse); })
+        .catch(() => {});
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to retrieve briefing");
+      setLoading(false);
+    }
+  }, []);
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
@@ -220,7 +238,7 @@ export default function ExecutiveSummaryContent() {
             <div className="flex gap-3 items-center">
               {!briefing && !loading && (
                 <>
-                  {error && (activeReportRunId ?? reportRunId) && (
+                  {error && (
                     <Button
                       onClick={handleRetrieve}
                       variant="outline"
