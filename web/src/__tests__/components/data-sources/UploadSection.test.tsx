@@ -2,6 +2,15 @@ import { render, screen, fireEvent, waitFor, RenderResult } from "@testing-libra
 import userEvent from "@testing-library/user-event";
 import React from "react";
 
+// Mock next/navigation before importing component
+jest.mock("next/navigation", () => ({
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn(),
+  })),
+}));
+
 // Mock hooks before importing component
 jest.mock("@/hooks/useDatasetUpload", () => ({
   useDatasetUpload: jest.fn(() => ({
@@ -24,6 +33,7 @@ jest.mock("@/contexts/DataSourceContext", () => ({
   useDataSource: jest.fn(() => ({
     hasUploadedData: false,
     setHasUploadedData: jest.fn(),
+    setLatestReportRunId: jest.fn(),
   })),
 }));
 
@@ -52,6 +62,7 @@ describe("UploadSection", () => {
     mockUseDataSource.mockReturnValue({
       hasUploadedData: false,
       setHasUploadedData: jest.fn(),
+      setLatestReportRunId: jest.fn(),
     });
   });
 

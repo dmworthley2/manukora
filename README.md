@@ -57,20 +57,21 @@ npm run -w backend typecheck && npm run -w web typecheck
 
 See [`backend/README.md`](backend/README.md) for detailed architecture and API reference.
 
-### Phase 2 — Briefing Generation (LangGraph Agents)
+### Phase 2 — Briefing Generation (Supabase Edge Functions)
 
-**FactBundle → Narrative Briefing**
+**FactBundle → Narrative Briefing via Blackboard Pattern**
 
-1. **Analyst Agent** (2-min) — Transforms metrics into narrative sections with citations
-2. **Auditor Agent** (1-min) — Verifies all claims match FactBundle; detects hallucinations
-3. **Orchestration** — Max 2 iterations: generate → audit → (approve|revise|fail)
-4. **Storage** — Saves approved briefing markdown to Supabase outputs bucket
+Three edge functions communicate exclusively through the `briefing_blackboard` and `briefing_section` DB tables:
 
-**Design:** Fire-and-forget async. Returns FactBundle immediately; agents run in background.
+1. **`briefing-orchestrator`** — No LLM calls; sequences the pipeline and enforces pass ceiling
+2. **`analyst-agent`** — Tool-use loop (max 5 iterations); draft mode writes 5 sections, respond mode replies to auditor challenges
+3. **`auditor-agent`** — Tool-use loop (max 5 iterations); challenges or approves each section
 
-![Briefing Workflow](docs/briefing-workflow.svg)
+**Flow:** orchestrator → analyst (draft) → auditor (review) → analyst (respond, if challenged) → finalize
 
-See [`backend/README.md`](backend/README.md#generate-briefing-phase-2--async-langgraph-workflow) for code examples and [`docs/briefing-workflow.svg`](docs/briefing-workflow.svg) for process flow.
+**Model:** `claude-haiku-4-5-20251001` for both agents
+
+**Design:** Fire-and-forget async. `briefing-orchestrator` responds 202 immediately; pipeline runs in `EdgeRuntime.waitUntil`.
 
 ## Project Structure
 
@@ -132,6 +133,11 @@ See `.env.example` for complete template.
 - `GET /api/reports` — List all report runs
 - `GET /api/reports/[id]/outputs` — List outputs for a run (signed URLs to FactBundle, briefing)
 
+### Briefings
+- `POST /api/briefings/generate` — Trigger briefing-orchestrator for latest report run; returns `reportRunId`
+- `GET /api/briefings/[reportRunId]` — Poll for finalised briefing (returns 404 until `is_final = true`)
+- `GET /api/briefings/latest` — Fetch most recent blackboard + sections regardless of `is_final` status
+
 See [`web/README.md`](web/README.md) for API response schemas.
 
 ## Key Guarantees
@@ -144,11 +150,11 @@ All numbers in FactBundle are computed from source data with no LLM invention:
 - **Trends** = detected from 3+ consecutive periods
 
 ### Auditor Verification
-LangGraph Auditor node enforces:
+The `auditor-agent` edge function enforces:
 - Every claim cites a FactBundle field
 - No hallucinated SKUs or metrics
 - Internal logical consistency
-- Max 2 iterations (prevents infinite loops)
+- Max 5 tool-use iterations (prevents infinite loops)
 
 ### Fail-Closed Validation
 Invalid rows, missing fields, or duplicates block the pipeline:
@@ -172,7 +178,7 @@ npm run -w backend test -- --watch
 npm run -w backend typecheck && npm run -w web typecheck
 ```
 
-**Coverage:** 26 tests covering CSV parsing, analytics, agent orchestration, timeouts, environment validation.
+**Coverage:** 27 web tests (hooks, components, API routes) + backend tests covering CSV parsing, analytics, agent orchestration, timeouts, environment validation.
 
 ## Deployment
 

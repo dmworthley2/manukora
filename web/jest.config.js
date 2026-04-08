@@ -11,6 +11,7 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@manukora/backend$': '<rootDir>/../backend/dist/index.js',
   },
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',

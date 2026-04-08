@@ -1,10 +1,42 @@
-import type { BriefingBlackboardRow, BriefingSectionRow } from "@manukora/backend";
+import { z } from "zod";
 
 /**
  * GET /api/briefings/latest
  * Returns sections from the most recent briefing blackboard, regardless of is_final status.
  * Used by the Retrieve Analysis button after a polling timeout.
  */
+
+const LatestRunSchema = z.object({
+  id: z.string(),
+});
+
+const BlackboardSchema = z.object({
+  id: z.string(),
+  report_run_id: z.string(),
+  overall_status: z.string(),
+  is_final: z.boolean().nullable(),
+  created_at: z.string().nullable(),
+  conflicts: z.unknown().nullable(),
+  approval_summary: z.unknown().nullable(),
+});
+
+const SectionSchema = z.object({
+  section_id: z.string(),
+  title: z.string().nullable(),
+  analyst_draft: z.string().nullable(),
+  analyst_reasoning: z.string().nullable(),
+  analyst_submitted_at: z.string().nullable(),
+  analyst_response: z.string().nullable(),
+  analyst_position: z.string().nullable(),
+  auditor_status: z.string().nullable(),
+  auditor_challenges: z.unknown().nullable(),
+  auditor_notes: z.string().nullable(),
+  auditor_reviewed_at: z.string().nullable(),
+  is_approved: z.boolean().nullable(),
+  escalation_reason: z.string().nullable(),
+  resolution_type: z.string().nullable(),
+});
+
 export async function GET() {
   try {
     const { createSupabaseAdminClient, loadEnv } = await import("@manukora/backend");
@@ -13,19 +45,21 @@ export async function GET() {
     const client = createSupabaseAdminClient(env);
 
     // Get most recent report run
-    const { data: latestRun, error: runError } = await client
+    const { data: latestRunRaw, error: runError } = await client
       .from("report_runs")
       .select("id")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (runError || !latestRun) {
+    if (runError || !latestRunRaw) {
       return Response.json({ error: "No report runs found" }, { status: 404 });
     }
 
+    const latestRun = LatestRunSchema.parse(latestRunRaw);
+
     // Get most recent blackboard for that run
-    const { data: blackboard, error: bbError } = await client
+    const { data: blackboardRaw, error: bbError } = await client
       .from("briefing_blackboard")
       .select("*")
       .eq("report_run_id", latestRun.id)
@@ -33,14 +67,14 @@ export async function GET() {
       .limit(1)
       .maybeSingle();
 
-    if (bbError || !blackboard) {
+    if (bbError || !blackboardRaw) {
       return Response.json({ error: "No briefing found for the latest run" }, { status: 404 });
     }
 
-    const bb = blackboard as BriefingBlackboardRow;
+    const bb = BlackboardSchema.parse(blackboardRaw);
 
     // Get sections for that blackboard
-    const { data: sections, error: sectionsError } = await client
+    const { data: sectionsRaw, error: sectionsError } = await client
       .from("briefing_section")
       .select("*")
       .eq("blackboard_id", bb.id)
@@ -50,14 +84,16 @@ export async function GET() {
       return Response.json({ error: "Failed to load sections" }, { status: 500 });
     }
 
-    if (!sections || sections.length === 0) {
+    if (!sectionsRaw || sectionsRaw.length === 0) {
       return Response.json({ error: "No sections written yet" }, { status: 404 });
     }
 
-    const sectionResponses = (sections as BriefingSectionRow[]).map((section) => ({
+    const sections = z.array(SectionSchema).parse(sectionsRaw);
+
+    const sectionResponses = sections.map((section) => ({
       section_id: section.section_id,
       title: section.title,
-      status: section.auditor_status || "pending",
+      status: section.auditor_status ?? "pending",
       analyst_draft: section.analyst_draft,
       analyst_reasoning: section.analyst_reasoning,
       analyst_submitted_at: section.analyst_submitted_at,
@@ -72,7 +108,7 @@ export async function GET() {
       resolution_type: section.resolution_type,
     }));
 
-    const conflicts = (bb.conflicts as Array<{ section_id: string; escalation_reason: string }>) || [];
+    const conflicts = (bb.conflicts as Array<{ section_id: string; escalation_reason: string }>) ?? [];
 
     return Response.json({
       reportRunId: latestRun.id,

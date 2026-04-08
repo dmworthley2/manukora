@@ -6,6 +6,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk";
+import { z } from "npm:zod";
 
 // ---------------------------------------------------------------------------
 // Prompts
@@ -367,9 +368,15 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let body: { blackboardId: string; reportRunId: string; mode: "draft" | "respond" };
+  const RequestBodySchema = z.object({
+    blackboardId: z.string().min(1),
+    reportRunId: z.string().min(1),
+    mode: z.enum(["draft", "respond"]),
+  });
+
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
@@ -377,21 +384,15 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { blackboardId, reportRunId, mode } = body;
-
-  if (!blackboardId || !reportRunId || !mode) {
-    return new Response(JSON.stringify({ error: "Missing required fields: blackboardId, reportRunId, mode" }), {
+  const parsed = RequestBodySchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return new Response(JSON.stringify({ error: parsed.error.message }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  if (mode !== "draft" && mode !== "respond") {
-    return new Response(JSON.stringify({ error: `Invalid mode: ${mode}. Must be "draft" or "respond"` }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+  const { blackboardId, reportRunId, mode } = parsed.data;
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
   const anthropic = new Anthropic({ apiKey: anthropicApiKey });
