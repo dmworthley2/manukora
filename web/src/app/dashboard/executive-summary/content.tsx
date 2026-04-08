@@ -145,6 +145,12 @@ export default function ExecutiveSummaryContent() {
     return () => { cancelled = true; };
   }, []);
 
+  const handleRetrieve = useCallback(() => {
+    const runId = activeReportRunId ?? reportRunId;
+    if (!runId) return;
+    startPolling(runId);
+  }, [activeReportRunId, reportRunId, startPolling]);
+
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
     setError(null);
@@ -213,14 +219,25 @@ export default function ExecutiveSummaryContent() {
             </div>
             <div className="flex gap-3 items-center">
               {!briefing && !loading && (
-                <Button
-                  onClick={handleGenerate}
-                  disabled={generating}
-                  className="bg-[#775a00] hover:bg-[#5a4200] text-white px-6 py-2.5 rounded-sm font-bold uppercase tracking-widest text-xs flex items-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Generate Analysis
-                </Button>
+                <>
+                  {error && (activeReportRunId ?? reportRunId) && (
+                    <Button
+                      onClick={handleRetrieve}
+                      variant="outline"
+                      className="border-[#775a00] text-[#775a00] hover:bg-[#775a00]/10 px-6 py-2.5 rounded-sm font-bold uppercase tracking-widest text-xs"
+                    >
+                      Retrieve Analysis
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={generating}
+                    className="bg-[#775a00] hover:bg-[#5a4200] text-white px-6 py-2.5 rounded-sm font-bold uppercase tracking-widest text-xs flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Generate Analysis
+                  </Button>
+                </>
               )}
               <div className="px-4 py-2 bg-[#f9f5eb] rounded-full flex items-center gap-2 border border-[#d0c5af]/30">
                 <span className={`w-1.5 h-1.5 rounded-full ${loading ? "bg-[#775a00] animate-pulse" : "bg-[#3f6653]"}`} />
