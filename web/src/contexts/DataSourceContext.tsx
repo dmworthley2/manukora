@@ -5,6 +5,8 @@ import { createContext, useContext, useState, ReactNode } from "react";
 interface DataSourceContextType {
   hasUploadedData: boolean;
   setHasUploadedData: (value: boolean) => void;
+  latestReportRunId: string | null;
+  setLatestReportRunId: (id: string) => void;
 }
 
 const DataSourceContext = createContext<DataSourceContextType | undefined>(
@@ -13,9 +15,10 @@ const DataSourceContext = createContext<DataSourceContextType | undefined>(
 
 export function DataSourceProvider({ children }: { children: ReactNode }) {
   const [hasUploadedData, setHasUploadedData] = useState(false);
+  const [latestReportRunId, setLatestReportRunId] = useState<string | null>(null);
 
   return (
-    <DataSourceContext.Provider value={{ hasUploadedData, setHasUploadedData }}>
+    <DataSourceContext.Provider value={{ hasUploadedData, setHasUploadedData, latestReportRunId, setLatestReportRunId }}>
       {children}
     </DataSourceContext.Provider>
   );

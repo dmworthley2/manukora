@@ -45,7 +45,7 @@ export function UploadSection({ onUploadSuccess }: UploadSectionProps) {
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
   const { upload, isUploading, error } = useDatasetUpload();
   const { toast } = useToast();
-  const { setHasUploadedData } = useDataSource();
+  const { setHasUploadedData, setLatestReportRunId } = useDataSource();
 
   const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -82,16 +82,13 @@ export function UploadSection({ onUploadSuccess }: UploadSectionProps) {
       setUploadedFile({ name: file.name, size: file.size });
       setSelectedFile(null);
       setHasUploadedData(true);
+      setLatestReportRunId(result.reportRunId);
       toast({
         title: "Upload successful",
-        description: `${file.name} uploaded and processing started`,
+        description: `${file.name} processed. Generating briefing...`,
       });
       onUploadSuccess?.(result);
-
-      // Navigate to executive summary to view the briefing
-      setTimeout(() => {
-        router.push(`/dashboard/executive-summary?reportRunId=${result.reportRunId}`);
-      }, 1000);
+      router.push("/dashboard/executive-summary");
     } else {
       setSelectedFile(null);
       toast({

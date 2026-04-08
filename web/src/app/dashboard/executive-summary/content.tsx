@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronDown, TrendingUp, AlertCircle, CheckCircle2, TrendingDown } from "lucide-react";
+import { ChevronDown, TrendingUp, AlertCircle, TrendingDown } from "lucide-react";
+import { useDataSource } from "@/contexts/DataSourceContext";
 
 interface AuditorChallenge {
   readonly id: string;
@@ -47,9 +48,32 @@ interface MetricsResponse {
   readonly periodMonth: string;
 }
 
+// Poll every 5 seconds for up to 2 minutes (24 attempts)
+const POLL_INTERVAL_MS = 5000;
+const MAX_POLL_ATTEMPTS = 24;
+
+function BriefingSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6">
+      <div className="h-4 bg-[#d0c5af]/40 rounded w-3/4" />
+      <div className="h-4 bg-[#d0c5af]/40 rounded w-full" />
+      <div className="h-4 bg-[#d0c5af]/40 rounded w-5/6" />
+      <div className="h-4 bg-[#d0c5af]/40 rounded w-2/3" />
+      <div className="mt-6 p-6 bg-[#f9f5eb] rounded-sm border-l-4 border-[#d0c5af]/40">
+        <div className="h-3 bg-[#d0c5af]/40 rounded w-1/3 mb-4" />
+        <div className="h-3 bg-[#d0c5af]/40 rounded w-full mb-2" />
+        <div className="h-3 bg-[#d0c5af]/40 rounded w-4/5" />
+      </div>
+    </div>
+  );
+}
+
 export default function ExecutiveSummaryContent() {
   const searchParams = useSearchParams();
-  const reportRunId = searchParams.get("reportRunId");
+  const { latestReportRunId } = useDataSource();
+
+  // Prefer query param (direct link) over context (post-upload navigation)
+  const reportRunId = searchParams.get("reportRunId") ?? latestReportRunId;
 
   const [briefing, setBriefing] = useState<BriefingResponse | null>(null);
   const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
@@ -57,135 +81,92 @@ export default function ExecutiveSummaryContent() {
   const [error, setError] = useState<string | null>(null);
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
   const [pollAttempts, setPollAttempts] = useState(0);
-  const MAX_POLL_ATTEMPTS = 5;
 
   useEffect(() => {
     if (!reportRunId) {
-      setError("Report ID is required");
       setLoading(false);
       return;
     }
 
-    const fetchBriefing = async () => {
+    let pollInterval: NodeJS.Timeout | null = null;
+    let cancelled = false;
+
+    const fetchBriefing = async (): Promise<boolean> => {
       try {
-        setLoading(true);
         const response = await fetch(`/api/briefings/${reportRunId}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            // Briefing not ready yet, will retry
-            return false;
-          }
-          throw new Error(`HTTP ${response.status}`);
-        }
+        if (response.status === 404) return false; // Not ready yet
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
         const data = (await response.json()) as BriefingResponse;
+        if (cancelled) return true;
         setBriefing(data);
         setError(null);
-        setPollAttempts(0); // Reset on success
+        setLoading(false);
 
-        // Fetch metrics once briefing is ready
-        try {
-          const metricsResponse = await fetch(`/api/briefings/${reportRunId}/metrics`);
-          if (metricsResponse.ok) {
-            const metricsData = (await metricsResponse.json()) as MetricsResponse;
-            setMetrics(metricsData);
-          }
-        } catch (metricsErr) {
-          // Metrics fetch failed, but don't block briefing display
-          console.warn("Failed to fetch metrics:", metricsErr);
-        }
+        // Fetch metrics after briefing loads
+        fetch(`/api/briefings/${reportRunId}/metrics`)
+          .then((r) => r.ok ? r.json() : null)
+          .then((data) => { if (data && !cancelled) setMetrics(data as MetricsResponse); })
+          .catch(() => {});
 
         return true;
       } catch (err) {
+        if (cancelled) return false;
         setError(err instanceof Error ? err.message : "Failed to load briefing");
-        setBriefing(null);
-        return false;
-      } finally {
         setLoading(false);
+        return false;
       }
     };
 
-    let pollInterval: NodeJS.Timeout | null = null;
-
     const startPolling = async () => {
-      const success = await fetchBriefing();
-      if (!success) {
-        // Briefing not ready, poll every 2 seconds up to 5 attempts
-        let currentAttempt = 0;
-        pollInterval = setInterval(async () => {
-          currentAttempt++;
-          setPollAttempts(currentAttempt);
+      const ready = await fetchBriefing();
+      if (ready || cancelled) return;
 
-          if (currentAttempt >= MAX_POLL_ATTEMPTS) {
-            // Stop polling after max attempts
-            if (pollInterval) {
-              clearInterval(pollInterval);
-              pollInterval = null;
-            }
-            setError("Briefing generation timed out. Please refresh the page.");
-            setLoading(false);
-            return;
-          }
+      let attempt = 0;
+      pollInterval = setInterval(async () => {
+        if (cancelled) {
+          clearInterval(pollInterval!);
+          return;
+        }
 
-          const ready = await fetchBriefing();
-          if (ready && pollInterval) {
-            clearInterval(pollInterval);
-            pollInterval = null;
-          }
-        }, 2000);
-      }
+        attempt++;
+        setPollAttempts(attempt);
+
+        if (attempt >= MAX_POLL_ATTEMPTS) {
+          clearInterval(pollInterval!);
+          setError("Briefing is taking longer than expected. Refresh the page to check again.");
+          setLoading(false);
+          return;
+        }
+
+        const ready = await fetchBriefing();
+        if (ready && pollInterval) clearInterval(pollInterval);
+      }, POLL_INTERVAL_MS);
     };
 
     startPolling();
-
     return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
+      cancelled = true;
+      if (pollInterval) clearInterval(pollInterval);
     };
   }, [reportRunId]);
 
-  if (!reportRunId || error) {
+  // No reportRunId — show prompt to upload
+  if (!reportRunId) {
     return (
-      <div className="min-h-screen bg-[#fdf9ef] flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center text-[#4d4635]">
-          <p className="text-lg">{error || "Report ID is required"}</p>
+          <p className="text-lg font-medium mb-2">No briefing yet</p>
+          <p className="text-sm opacity-70">Upload a CSV from Data Sources to generate your first briefing.</p>
         </div>
       </div>
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#fdf9ef] flex items-center justify-center">
-        <div className="text-center text-[#4d4635]">
-          <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center">
-            <div className="w-8 h-8 border-4 border-[#775a00] border-t-transparent rounded-full animate-spin" />
-          </div>
-          <p className="text-lg font-medium mb-2">Generating briefing...</p>
-          <p className="text-sm text-[#4d4635]/70">
-            {briefing ? "Finalizing report" : "Analyzing data and preparing insights"}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const executiveSummarySection = briefing?.sections.find((s) => s.section_id === "executive-summary");
+  const capitalAllocationSection = briefing?.sections.find((s) => s.section_id === "capital-allocation");
 
-  if (!briefing) {
-    return (
-      <div className="min-h-screen bg-[#fdf9ef] flex items-center justify-center">
-        <div className="text-center text-[#4d4635]">
-          <p className="text-lg">Briefing not found</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Extract sections
-  const executiveSummarySection = briefing.sections.find((s) => s.section_id === "executive-summary");
-  const capitalAllocationSection = briefing.sections.find((s) => s.section_id === "capital-allocation");
-
-  // Get critical insights from sections with challenges
-  const criticalInsights = briefing.sections
+  const criticalInsights = briefing?.sections
     .filter((s) => s.auditor_challenges && s.auditor_challenges.length > 0)
     .flatMap((s) =>
       s.auditor_challenges!.map((c) => ({
@@ -194,31 +175,16 @@ export default function ExecutiveSummaryContent() {
         challenge: c,
         resolution: s.analyst_response || "Pending analyst response",
       }))
-    );
+    ) ?? [];
 
-  // Calculate KPIs from approval summary and metrics
-  const approvalSummary = briefing.briefing_status.approval_summary;
+  const approvalSummary = briefing?.briefing_status.approval_summary;
   const totalRevenue = metrics?.totalRevenue ?? 0;
   const avgOrderValue = metrics?.avgOrderValue ?? 0;
 
   return (
-    <div className="bg-[#fdf9ef] min-h-screen">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-[#fdf9ef] border-b border-[#d0c5af]/20">
-        <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl italic font-serif font-semibold text-[#1c1c16]">Manukora</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-[#1c1c16]/70 text-xs font-semibold uppercase tracking-wider">
-            <span className="text-[#775a00] cursor-pointer">Dashboard</span>
-            <span className="cursor-pointer hover:text-[#775a00] transition-colors">Supply Chain</span>
-            <span className="cursor-pointer hover:text-[#775a00] transition-colors">Marketplace</span>
-          </nav>
-        </div>
-      </header>
-
+    <div className="bg-[#fdf9ef] min-h-screen pb-16">
       {/* Main Content */}
-      <main className="pt-20 pb-32 px-6 max-w-7xl mx-auto">
+      <div className="px-6 max-w-7xl mx-auto">
         {/* Editorial Header */}
         <section className="mb-16">
           <div className="flex flex-col md:flex-row justify-between items-end gap-6">
@@ -230,36 +196,46 @@ export default function ExecutiveSummaryContent() {
                 Today's <span className="italic text-[#775a00] font-normal">Briefing</span>
               </h1>
               <p className="text-[#4d4635] text-lg max-w-xl leading-relaxed">
-                Synthesis of marketplace performance, supply chain risks, and strategic opportunities for {briefing.period}.
+                {briefing
+                  ? `Synthesis of marketplace performance, supply chain risks, and strategic opportunities for ${briefing.period}.`
+                  : "Generating your briefing from uploaded data…"}
               </p>
             </div>
             <div className="flex gap-3">
               <div className="px-4 py-2 bg-[#f9f5eb] rounded-full flex items-center gap-2 border border-[#d0c5af]/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#3f6653] animate-pulse"></span>
-                <span className="text-xs font-bold text-[#4d4635] uppercase tracking-widest">AI Engine Live</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${loading ? "bg-[#775a00] animate-pulse" : "bg-[#3f6653]"}`} />
+                <span className="text-xs font-bold text-[#4d4635] uppercase tracking-widest">
+                  {loading ? `Generating${pollAttempts > 0 ? ` (${pollAttempts})` : ""}` : "AI Engine Live"}
+                </span>
               </div>
             </div>
           </div>
         </section>
 
+        {/* Error state */}
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-sm text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Main Content Grid */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-          {/* Executive Summary - Left Column (Wider) */}
+          {/* Executive Summary */}
           <div className="lg:col-span-2">
             <div className="bg-white/40 p-8 md:p-12 rounded-sm border border-[#d0c5af]/30 backdrop-blur-sm">
               <h2 className="font-serif text-3xl font-bold mb-8 text-[#1c1c16]">Executive Summary</h2>
 
-              {executiveSummarySection ? (
+              {loading ? (
+                <BriefingSkeleton />
+              ) : executiveSummarySection ? (
                 <div className="space-y-6">
                   <div className="text-[#4d4635] leading-relaxed text-base">
                     {executiveSummarySection.analyst_draft.split("\n").map((paragraph, idx) => (
-                      <p key={idx} className="mb-4">
-                        {paragraph}
-                      </p>
+                      <p key={idx} className="mb-4">{paragraph}</p>
                     ))}
                   </div>
 
-                  {/* Confidence Insight Box */}
                   {capitalAllocationSection && (
                     <div className="p-6 bg-[#f9f5eb] rounded-sm border-l-4 border-[#775a00]">
                       <div className="flex justify-between items-start mb-4">
@@ -280,29 +256,31 @@ export default function ExecutiveSummaryContent() {
                   )}
                 </div>
               ) : (
-                <p className="text-[#4d4635]">Loading briefing content...</p>
+                <p className="text-[#4d4635]">No briefing content available.</p>
               )}
             </div>
           </div>
 
-          {/* KPIs - Right Column */}
+          {/* KPIs */}
           <div className="space-y-6">
-            {/* Revenue KPI */}
             <div className="bg-[#775a00] text-white p-8 rounded-sm">
               <span className="text-xs font-bold uppercase tracking-[0.2em] block mb-4 opacity-80">
                 Total Revenue (MTD)
               </span>
-              <h3 className="font-serif text-5xl font-bold tracking-tight mb-3">
-                {totalRevenue >= 1000000
-                  ? `$${(totalRevenue / 1000000).toFixed(2)}M`
-                  : `$${(totalRevenue / 1000).toFixed(1)}K`}
-              </h3>
+              {loading ? (
+                <div className="h-12 bg-white/20 rounded animate-pulse mb-3" />
+              ) : (
+                <h3 className="font-serif text-5xl font-bold tracking-tight mb-3">
+                  {totalRevenue >= 1000000
+                    ? `$${(totalRevenue / 1000000).toFixed(2)}M`
+                    : `$${(totalRevenue / 1000).toFixed(1)}K`}
+                </h3>
+              )}
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
                 <TrendingUp className="w-4 h-4" /> {metrics ? "From Sales Data" : "Calculating..."}
               </div>
             </div>
 
-            {/* AOV KPI */}
             <div className="bg-[#e6e2d8] p-8 rounded-sm">
               <div className="flex justify-between items-start mb-4">
                 <span className="text-[#4d4635] text-xs font-bold uppercase tracking-[0.2em]">Avg. Revenue/SKU</span>
@@ -310,12 +288,15 @@ export default function ExecutiveSummaryContent() {
                   {metrics ? "Calculated" : "Loading"}
                 </span>
               </div>
-              <h3 className="font-serif text-4xl font-bold tracking-tight text-[#1c1c16]">
-                ${avgOrderValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-              </h3>
+              {loading ? (
+                <div className="h-10 bg-[#d0c5af]/40 rounded animate-pulse" />
+              ) : (
+                <h3 className="font-serif text-4xl font-bold tracking-tight text-[#1c1c16]">
+                  ${avgOrderValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                </h3>
+              )}
             </div>
 
-            {/* Approval Status */}
             {approvalSummary && (
               <div className="bg-[#f9f5eb] p-6 rounded-sm border border-[#d0c5af]/30">
                 <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#4d4635] block mb-4">
@@ -340,7 +321,7 @@ export default function ExecutiveSummaryContent() {
           </div>
         </section>
 
-        {/* Critical Insights Section */}
+        {/* Critical Insights */}
         {criticalInsights.length > 0 && (
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div>
@@ -352,40 +333,33 @@ export default function ExecutiveSummaryContent() {
               </p>
             </div>
 
-            {/* Alerts */}
             <div className="lg:col-span-2 space-y-6">
               {criticalInsights.slice(0, 3).map((insight) => {
                 const isOpen = expandedAlert === insight.id;
                 const isError = insight.challenge.severity === "error";
-                const bgColor = isError ? "bg-[#ba1a1a]/5" : "bg-[#f9f5eb]";
-                const iconColor = isError ? "text-[#ba1a1a]" : "text-[#775a00]";
 
                 return (
-                  <div key={insight.id} className={`${bgColor} p-6 rounded-sm border border-[#d0c5af]/30`}>
+                  <div
+                    key={insight.id}
+                    className={`${isError ? "bg-[#ba1a1a]/5" : "bg-[#f9f5eb]"} p-6 rounded-sm border border-[#d0c5af]/30`}
+                  >
                     <div className="flex items-start gap-6">
                       <div className={`w-12 h-12 rounded-sm ${isError ? "bg-[#ba1a1a]/10" : "bg-[#775a00]/10"} flex items-center justify-center shrink-0`}>
-                        {isError ? (
-                          <AlertCircle className={`w-6 h-6 ${iconColor}`} />
-                        ) : (
-                          <TrendingDown className={`w-6 h-6 ${iconColor}`} />
-                        )}
+                        {isError
+                          ? <AlertCircle className={`w-6 h-6 ${isError ? "text-[#ba1a1a]" : "text-[#775a00]"}`} />
+                          : <TrendingDown className="w-6 h-6 text-[#775a00]" />}
                       </div>
                       <div className="flex-1">
                         <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
                           <h3 className="font-bold text-base uppercase tracking-tight text-[#1c1c16]">
                             {insight.challenge.claim}
                           </h3>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`${isError ? "bg-[#ba1a1a]/10 text-[#ba1a1a]" : "bg-[#e6e2d8] text-[#4d4635]"} px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-[0.1em]`}
-                            >
-                              {insight.challenge.severity === "error" ? "Action Needed" : "Review Required"}
-                            </span>
-                          </div>
+                          <span className={`${isError ? "bg-[#ba1a1a]/10 text-[#ba1a1a]" : "bg-[#e6e2d8] text-[#4d4635]"} px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-[0.1em]`}>
+                            {isError ? "Action Needed" : "Review Required"}
+                          </span>
                         </div>
                         <p className="text-[#4d4635] text-sm leading-relaxed mb-4">{insight.challenge.question}</p>
 
-                        {/* Expandable Reasoning */}
                         <details
                           className="group"
                           open={isOpen}
@@ -393,10 +367,7 @@ export default function ExecutiveSummaryContent() {
                         >
                           <summary className="list-none cursor-pointer flex items-center gap-2 text-[10px] font-bold text-[#775a00] uppercase tracking-widest hover:underline">
                             <span>View Reasoning</span>
-                            <ChevronDown
-                              className="w-4 h-4 transition-transform group-open:rotate-180"
-                              aria-hidden="true"
-                            />
+                            <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" aria-hidden="true" />
                           </summary>
                           <div className="mt-4 pt-4 border-t border-[#d0c5af]/30 text-xs bg-[#fdf9ef]/50 p-4 rounded-sm space-y-2">
                             <p className="font-bold opacity-60">Evidence:</p>
@@ -411,23 +382,7 @@ export default function ExecutiveSummaryContent() {
             </div>
           </section>
         )}
-      </main>
-
-      {/* Bottom Navigation (Mobile) */}
-      <nav className="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center pt-2 pb-safe px-4 bg-[#fdf9ef]/90 backdrop-blur-lg border-t border-[#d0c5af]/20 md:hidden">
-        <div className="flex flex-col items-center justify-center bg-[#e6e2d8] text-[#1c1c16] rounded-sm px-4 py-2 transition-all active:scale-95">
-          <span className="text-sm font-bold uppercase tracking-widest">Briefing</span>
-        </div>
-        <div className="flex flex-col items-center justify-center text-[#1c1c16]/50 px-4 py-2 hover:text-[#775a00] transition-all">
-          <span className="text-sm font-bold uppercase tracking-widest">Sales</span>
-        </div>
-        <div className="flex flex-col items-center justify-center text-[#1c1c16]/50 px-4 py-2 hover:text-[#775a00] transition-all">
-          <span className="text-sm font-bold uppercase tracking-widest">Inventory</span>
-        </div>
-        <div className="flex flex-col items-center justify-center text-[#1c1c16]/50 px-4 py-2 hover:text-[#775a00] transition-all">
-          <span className="text-sm font-bold uppercase tracking-widest">Reorders</span>
-        </div>
-      </nav>
+      </div>
     </div>
   );
 }

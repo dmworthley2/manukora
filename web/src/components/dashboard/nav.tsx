@@ -17,7 +17,7 @@ interface DashboardNavProps {
 
 const NAV_ITEMS: readonly NavItem[] = [
   { href: "/data-sources", label: "Data Sources", icon: "📁" },
-  { href: "/dashboard", label: "Briefing", icon: "📊" },
+  { href: "/dashboard/executive-summary", label: "Briefing", icon: "📊" },
   { href: "/dashboard/sales", label: "Sales", icon: "📈" },
   { href: "/dashboard/inventory", label: "Inventory", icon: "📦" },
   { href: "/dashboard/reorders", label: "Reorders", icon: "🔄" },
@@ -37,7 +37,7 @@ export function DashboardNav({ className }: DashboardNavProps) {
       {NAV_ITEMS.map((item) => {
         const isActive =
           pathname === item.href ||
-          (pathname.startsWith(item.href) && item.href !== "/dashboard");
+          (pathname.startsWith(item.href + "/") && item.href !== "/dashboard/executive-summary");
         const isDataSourcesItem = item.href === "/data-sources";
         const isDisabled = !hasUploadedData && !isDataSourcesItem;
 
