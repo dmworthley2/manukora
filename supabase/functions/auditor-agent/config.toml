@@ -1,0 +1,2 @@
+[functions.auditor-agent]
+verify_jwt = false

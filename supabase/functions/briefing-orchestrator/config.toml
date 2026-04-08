@@ -1,0 +1,2 @@
+[functions.briefing-orchestrator]
+verify_jwt = false
