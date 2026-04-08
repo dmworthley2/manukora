@@ -1,42 +1,25 @@
 /**
- * Trigger briefing workflow asynchronously.
- * Imports dynamically to avoid runtime deps on backend at Next.js build time.
- * @param reportRunId - Report run ID for finalization
- * @param factBundle - Processed fact bundle with inventory analysis
- * @param period - Analysis period (YYYY-MM)
- * @param inventoryReasoningFeed - Optional agent reasoning feed for inventory context
+ * Trigger briefing generation via Supabase Edge Function.
+ * Fire-and-forget: Supabase handles the long-running work independently.
  */
-async function triggerBriefingWorkflow(
+function triggerBriefingEdgeFunction(
+  supabaseUrl: string,
+  serviceRoleKey: string,
   reportRunId: string,
   factBundle: unknown,
   period: string,
-  inventoryReasoningFeed: unknown = null,
-): Promise<void> {
-  const { runBriefingWorkflow, finalizeBriefing, loadEnv, createSupabaseAdminClient } =
-    await import("@manukora/backend");
-
-  try {
-    const env = loadEnv();
-    const client = createSupabaseAdminClient(env);
-
-    // Run the briefing workflow (sync, with 5-min timeout internally)
-    // Pass inventory reasoning feed as context for agent prompts
-    const state = await runBriefingWorkflow(
-      factBundle as never,
-      reportRunId,
-      period,
-      env,
-      client,
-      inventoryReasoningFeed,
-    );
-
-    // Save artifacts and update report_runs
-    await finalizeBriefing(client, reportRunId, state);
-  } catch (err) {
-    // Log error but don't rethrow (fire-and-forget pattern)
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error(`Briefing workflow failed for ${reportRunId}: ${message}`);
-  }
+  inventoryReasoningFeed: unknown,
+): void {
+  fetch(`${supabaseUrl}/functions/v1/briefing-worker`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({ reportRunId, factBundle, period, inventoryReasoningFeed }),
+  }).catch((err) => {
+    console.error(`Briefing edge function trigger failed for ${reportRunId}:`, err);
+  });
 }
 
 export async function POST(req: Request) {
@@ -230,11 +213,16 @@ export async function POST(req: Request) {
       });
     }
 
-    // Trigger briefing workflow asynchronously (fire-and-forget)
-    // Pass inventory reasoning feed to the workflow
+    // Trigger briefing generation via Supabase Edge Function (fire-and-forget)
     if (result.factBundle) {
-      triggerBriefingWorkflow(reportRun.id, result.factBundle, period, inventoryReasoningFeed)
-        .catch((err) => console.error("Briefing workflow error:", err));
+      triggerBriefingEdgeFunction(
+        env.SUPABASE_URL,
+        env.SUPABASE_SERVICE_ROLE_KEY,
+        reportRun.id,
+        result.factBundle,
+        period,
+        inventoryReasoningFeed,
+      );
     }
 
     return Response.json(
