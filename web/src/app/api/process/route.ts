@@ -1,22 +1,23 @@
 /**
  * Trigger briefing generation via Supabase Edge Function.
- * Fire-and-forget: Supabase handles the long-running work independently.
- * JWT verification is disabled on the edge function (no auth headers needed).
+ * Uses supabase.functions.invoke() so the SDK handles auth headers automatically.
+ * Fire-and-forget: errors are logged but not rethrown.
  */
 function triggerBriefingEdgeFunction(
-  supabaseUrl: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
   reportRunId: string,
   factBundle: unknown,
   period: string,
   inventoryReasoningFeed: unknown,
 ): void {
-  fetch(`${supabaseUrl}/functions/v1/briefing-worker`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ reportRunId, factBundle, period, inventoryReasoningFeed }),
-  }).catch((err) => {
-    console.error(`Briefing edge function trigger failed for ${reportRunId}:`, err);
-  });
+  client.functions
+    .invoke("briefing-worker", {
+      body: { reportRunId, factBundle, period, inventoryReasoningFeed },
+    })
+    .catch((err: unknown) => {
+      console.error(`Briefing edge function trigger failed for ${reportRunId}:`, err);
+    });
 }
 
 export async function POST(req: Request) {
@@ -213,7 +214,7 @@ export async function POST(req: Request) {
     // Trigger briefing generation via Supabase Edge Function (fire-and-forget)
     if (result.factBundle) {
       triggerBriefingEdgeFunction(
-        env.SUPABASE_URL,
+        client,
         reportRun.id,
         result.factBundle,
         period,
