@@ -208,7 +208,10 @@ async function executeTool(
   }
 
   if (toolName === "submit_section") {
-    const { section_id, title, content } = toolInput as { section_id: string; title: string; content: string };
+    const section_id = typeof toolInput.section_id === "string" ? toolInput.section_id : null;
+    const title = typeof toolInput.title === "string" ? toolInput.title : null;
+    const content = typeof toolInput.content === "string" ? toolInput.content : null;
+    if (!section_id || !title || !content) return `submit_section: missing required fields`;
     const now = new Date().toISOString();
     const { error } = await supabase.from("briefing_section").upsert({
       blackboard_id: blackboardId,
@@ -224,12 +227,15 @@ async function executeTool(
   }
 
   if (toolName === "submit_response") {
-    const { section_id, resolution_type, reasoning, final_content } = toolInput as {
-      section_id: string;
-      resolution_type: "incorporated" | "rejected";
-      reasoning: string;
-      final_content: string;
-    };
+    const section_id = typeof toolInput.section_id === "string" ? toolInput.section_id : null;
+    const resolution_type = toolInput.resolution_type === "incorporated" || toolInput.resolution_type === "rejected"
+      ? toolInput.resolution_type
+      : null;
+    const reasoning = typeof toolInput.reasoning === "string" ? toolInput.reasoning : null;
+    const final_content = typeof toolInput.final_content === "string" ? toolInput.final_content : null;
+    if (!section_id || !resolution_type || !reasoning || !final_content) {
+      return `submit_response: missing required fields`;
+    }
     const now = new Date().toISOString();
     const updatePayload: Record<string, unknown> = {
       analyst_response: reasoning,
@@ -267,7 +273,7 @@ async function runAgentLoop(
 ): Promise<void> {
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: taskPrompt }];
   let iterations = 0;
-  const MAX_ITERATIONS = 2;
+  const MAX_ITERATIONS = 5;
 
   while (iterations < MAX_ITERATIONS) {
     const response = await anthropic.messages.create({
@@ -360,6 +366,13 @@ Deno.serve(async (req: Request) => {
 
   if (!blackboardId || !reportRunId || !mode) {
     return new Response(JSON.stringify({ error: "Missing required fields: blackboardId, reportRunId, mode" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (mode !== "draft" && mode !== "respond") {
+    return new Response(JSON.stringify({ error: `Invalid mode: ${mode}. Must be "draft" or "respond"` }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
