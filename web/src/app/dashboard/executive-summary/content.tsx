@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown, TrendingUp, AlertCircle, TrendingDown, Sparkles } from "lucide-react";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/contexts/DataSourceContext";
 
@@ -66,6 +68,24 @@ const SECTION_META: Record<string, { label: string; description: string }> = {
     label: "Next Steps",
     description: "Top 3 actions required in the next 72 hours with owners and deadlines.",
   },
+};
+
+const MD_COMPONENTS: Components = {
+  p: ({ children }) => <p className="mb-4 leading-relaxed">{children}</p>,
+  strong: ({ children }) => <strong className="font-bold text-[#1c1c16]">{children}</strong>,
+  ul: ({ children }) => <ul className="list-disc pl-5 mb-4 space-y-1">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 space-y-1">{children}</ol>,
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  h3: ({ children }) => <h3 className="font-bold text-[#1c1c16] text-sm uppercase tracking-widest mt-6 mb-3">{children}</h3>,
+  table: ({ children }) => (
+    <div className="overflow-x-auto mb-4">
+      <table className="w-full text-sm border-collapse">{children}</table>
+    </div>
+  ),
+  thead: ({ children }) => <thead className="bg-[#f9f5eb]">{children}</thead>,
+  th: ({ children }) => <th className="text-left px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#4d4635] border-b border-[#d0c5af]/50">{children}</th>,
+  td: ({ children }) => <td className="px-3 py-2 border-b border-[#d0c5af]/30 text-[#4d4635]">{children}</td>,
+  hr: () => <hr className="my-6 border-[#d0c5af]/30" />,
 };
 
 const REPORTING_SECTION_ORDER = [
@@ -312,10 +332,10 @@ export default function ExecutiveSummaryContent() {
               {loading ? (
                 <BriefingSkeleton />
               ) : executiveSummarySection ? (
-                <div className="text-[#4d4635] leading-relaxed text-base">
-                  {executiveSummarySection.analyst_draft.split("\n").map((paragraph, idx) => (
-                    <p key={idx} className="mb-4">{paragraph}</p>
-                  ))}
+                <div className="text-[#4d4635] text-base">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+                    {executiveSummarySection.analyst_draft}
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <div className="flex flex-col items-start gap-6 py-8">
@@ -417,10 +437,10 @@ export default function ExecutiveSummaryContent() {
                   {meta?.description && (
                     <p className="text-[#4d4635] text-sm mb-6 opacity-70">{meta.description}</p>
                   )}
-                  <div className="text-[#4d4635] leading-relaxed text-base">
-                    {section.analyst_draft.split("\n").map((paragraph, idx) => (
-                      <p key={idx} className="mb-3">{paragraph}</p>
-                    ))}
+                  <div className="text-[#4d4635] text-base">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+                      {section.analyst_draft}
+                    </ReactMarkdown>
                   </div>
                 </div>
               );
