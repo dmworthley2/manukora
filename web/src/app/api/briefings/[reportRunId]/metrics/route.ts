@@ -36,46 +36,31 @@ export async function GET(
 
     const period = reportRun.period; // "2026-04"
 
-    // Query all sales_history and join with product_catalog
-    // We'll calculate totals for all the data we have
-    const { data: sales, error: salesError } = await client
-      .from("sales_history")
-      .select(
-        `
-        units_sold,
-        sku,
-        product_catalog!inner(
-          sku,
-          retail_price_usd
-        )
-      `,
-      );
+    // Two separate queries to avoid PostgREST schema cache join issues
+    const [{ data: sales, error: salesError }, { data: catalog, error: catalogError }] =
+      await Promise.all([
+        client.from("sales_history").select("sku, units_sold"),
+        client.from("product_catalog").select("sku, retail_price_usd"),
+      ]);
 
-    if (salesError) {
-      throw new Error(`Query failed: ${salesError.message}`);
-    }
+    if (salesError) throw new Error(`Query failed: ${salesError.message}`);
+    if (catalogError) throw new Error(`Query failed: ${catalogError.message}`);
+
+    const priceMap = new Map<string, number>(
+      (catalog ?? []).map((r) => [r.sku as string, (r.retail_price_usd as number) ?? 0]),
+    );
 
     // Calculate metrics
     let totalRevenue = 0;
     let totalUnitsSold = 0;
     const uniqueSkus = new Set<string>();
 
-    if (sales && Array.isArray(sales)) {
-      for (const sale of sales) {
-        const unitsSold = sale.units_sold || 0;
-        const catalog = Array.isArray(sale.product_catalog)
-          ? sale.product_catalog[0]
-          : sale.product_catalog;
-
-        if (catalog) {
-          const price = catalog.retail_price_usd || 0;
-          const revenue = unitsSold * price;
-
-          totalRevenue += revenue;
-          totalUnitsSold += unitsSold;
-          uniqueSkus.add(sale.sku);
-        }
-      }
+    for (const sale of sales ?? []) {
+      const unitsSold = (sale.units_sold as number) || 0;
+      const price = priceMap.get(sale.sku as string) ?? 0;
+      totalRevenue += unitsSold * price;
+      totalUnitsSold += unitsSold;
+      uniqueSkus.add(sale.sku as string);
     }
 
     // Average Order Value: revenue per unique SKU
