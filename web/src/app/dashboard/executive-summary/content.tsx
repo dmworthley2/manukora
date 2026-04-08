@@ -49,6 +49,32 @@ interface MetricsResponse {
   readonly periodMonth: string;
 }
 
+const SECTION_META: Record<string, { label: string; description: string }> = {
+  "capital-allocation": {
+    label: "Capital Allocation Strategy",
+    description: "Priority SKUs ranked by revenue at risk and recommended reorder deployment.",
+  },
+  "risk-opportunity": {
+    label: "Risk & Opportunity",
+    description: "SKUs where sales trend conflicts with stock position — flagged for action.",
+  },
+  "reorder-recommendations": {
+    label: "Reorder Recommendations",
+    description: "Ranked reorder table by urgency with quantity and lead time assumptions.",
+  },
+  "next-steps": {
+    label: "Next Steps",
+    description: "Top 3 actions required in the next 72 hours with owners and deadlines.",
+  },
+};
+
+const REPORTING_SECTION_ORDER = [
+  "capital-allocation",
+  "risk-opportunity",
+  "reorder-recommendations",
+  "next-steps",
+] as const;
+
 // Poll every 5 seconds for up to 2 minutes (24 attempts)
 const POLL_INTERVAL_MS = 5000;
 const MAX_POLL_ATTEMPTS = 24;
@@ -60,11 +86,6 @@ function BriefingSkeleton() {
       <div className="h-4 bg-[#d0c5af]/40 rounded w-full" />
       <div className="h-4 bg-[#d0c5af]/40 rounded w-5/6" />
       <div className="h-4 bg-[#d0c5af]/40 rounded w-2/3" />
-      <div className="mt-6 p-6 bg-[#f9f5eb] rounded-sm border-l-4 border-[#d0c5af]/40">
-        <div className="h-3 bg-[#d0c5af]/40 rounded w-1/3 mb-4" />
-        <div className="h-3 bg-[#d0c5af]/40 rounded w-full mb-2" />
-        <div className="h-3 bg-[#d0c5af]/40 rounded w-4/5" />
-      </div>
     </div>
   );
 }
@@ -196,7 +217,10 @@ export default function ExecutiveSummaryContent() {
   }, [reportRunId]);
 
   const executiveSummarySection = briefing?.sections.find((s) => s.section_id === "executive-summary");
-  const capitalAllocationSection = briefing?.sections.find((s) => s.section_id === "capital-allocation");
+
+  const reportingSections = REPORTING_SECTION_ORDER
+    .map((id) => briefing?.sections.find((s) => s.section_id === id))
+    .filter((s): s is BriefingSection => s !== undefined);
 
   const criticalInsights = briefing?.sections
     .filter((s) => s.auditor_challenges && s.auditor_challenges.length > 0)
@@ -214,9 +238,9 @@ export default function ExecutiveSummaryContent() {
   const avgOrderValue = metrics?.avgOrderValue ?? 0;
 
   return (
-    <div className="bg-[#fdf9ef] min-h-screen pb-16">
-      {/* Main Content */}
+    <div className="bg-[#fdf9ef] pb-16">
       <div className="px-6 max-w-7xl mx-auto">
+
         {/* Editorial Header */}
         <section className="mb-16">
           <div className="flex flex-col md:flex-row justify-between items-end gap-6">
@@ -274,41 +298,24 @@ export default function ExecutiveSummaryContent() {
           </div>
         )}
 
-        {/* Main Content Grid */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-          {/* Executive Summary */}
+        {/* Executive Summary + KPIs */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className="lg:col-span-2">
             <div className="bg-white/40 p-8 md:p-12 rounded-sm border border-[#d0c5af]/30 backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-[10px] font-bold bg-[#3f6653]/10 text-[#3f6653] px-2 py-1 rounded-sm uppercase tracking-widest">
+                  Summary
+                </span>
+              </div>
               <h2 className="font-serif text-3xl font-bold mb-8 text-[#1c1c16]">Executive Summary</h2>
 
               {loading ? (
                 <BriefingSkeleton />
               ) : executiveSummarySection ? (
-                <div className="space-y-6">
-                  <div className="text-[#4d4635] leading-relaxed text-base">
-                    {executiveSummarySection.analyst_draft.split("\n").map((paragraph, idx) => (
-                      <p key={idx} className="mb-4">{paragraph}</p>
-                    ))}
-                  </div>
-
-                  {capitalAllocationSection && (
-                    <div className="p-6 bg-[#f9f5eb] rounded-sm border-l-4 border-[#775a00]">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center gap-3">
-                          <TrendingUp className="w-5 h-5 text-[#775a00]" />
-                          <h3 className="text-xs font-bold uppercase tracking-widest text-[#1c1c16]">
-                            Capital Allocation Insight
-                          </h3>
-                        </div>
-                        <span className="text-[10px] font-bold bg-[#775a00]/10 text-[#775a00] px-2 py-1 rounded-sm uppercase">
-                          AI Recommended
-                        </span>
-                      </div>
-                      <p className="text-sm text-[#4d4635] leading-relaxed">
-                        {capitalAllocationSection.analyst_draft.substring(0, 200)}...
-                      </p>
-                    </div>
-                  )}
+                <div className="text-[#4d4635] leading-relaxed text-base">
+                  {executiveSummarySection.analyst_draft.split("\n").map((paragraph, idx) => (
+                    <p key={idx} className="mb-4">{paragraph}</p>
+                  ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-start gap-6 py-8">
@@ -389,6 +396,38 @@ export default function ExecutiveSummaryContent() {
           </div>
         </section>
 
+        {/* Reporting Sections */}
+        {reportingSections.length > 0 && (
+          <section className="space-y-8 mb-12">
+            {reportingSections.map((section) => {
+              const meta = SECTION_META[section.section_id];
+              return (
+                <div
+                  key={section.section_id}
+                  className="bg-white/40 p-8 md:p-10 rounded-sm border border-[#d0c5af]/30 backdrop-blur-sm"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[10px] font-bold bg-[#775a00]/10 text-[#775a00] px-2 py-1 rounded-sm uppercase tracking-widest">
+                      Report
+                    </span>
+                  </div>
+                  <h2 className="font-serif text-2xl font-bold mb-2 text-[#1c1c16]">
+                    {meta?.label ?? section.title}
+                  </h2>
+                  {meta?.description && (
+                    <p className="text-[#4d4635] text-sm mb-6 opacity-70">{meta.description}</p>
+                  )}
+                  <div className="text-[#4d4635] leading-relaxed text-base">
+                    {section.analyst_draft.split("\n").map((paragraph, idx) => (
+                      <p key={idx} className="mb-3">{paragraph}</p>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        )}
+
         {/* Critical Insights */}
         {criticalInsights.length > 0 && (
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -450,6 +489,7 @@ export default function ExecutiveSummaryContent() {
             </div>
           </section>
         )}
+
       </div>
     </div>
   );
