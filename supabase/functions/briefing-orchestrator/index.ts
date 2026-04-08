@@ -103,7 +103,6 @@ async function runPipeline(
 
   try {
     // Step 1: Analyst draft
-    await supabase.from("briefing_blackboard").update({ overall_status: "analyst_drafting" }).eq("id", blackboardId);
     await invoke("analyst-agent", { blackboardId, reportRunId, mode: "draft" });
 
     // Check analyst wrote at least 1 section
