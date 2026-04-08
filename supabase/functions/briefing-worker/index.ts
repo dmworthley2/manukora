@@ -171,10 +171,9 @@ async function runBriefing(
   if (bbError) throw new Error(`Blackboard insert failed: ${bbError.message}`);
   const blackboardId = blackboard.id as string;
 
-  // Truncate context to avoid exceeding model token limits
-  const MAX_CONTEXT_CHARS = 60_000;
-  const inventoryContext = JSON.stringify(inventoryReasoningFeed ?? []).slice(0, MAX_CONTEXT_CHARS);
-  const factBundleContext = JSON.stringify(factBundle ?? {}).slice(0, MAX_CONTEXT_CHARS);
+  // Truncate context — Haiku has a 200K context window but we need room for output
+  const inventoryContext = JSON.stringify(inventoryReasoningFeed ?? []).slice(0, 30_000);
+  const factBundleContext = JSON.stringify(factBundle ?? {}).slice(0, 20_000);
 
   console.log(`Analyst call for blackboard ${blackboardId}: factBundle=${factBundleContext.length}chars, inventory=${inventoryContext.length}chars`);
 
@@ -183,7 +182,7 @@ async function runBriefing(
   try {
     analystMessage = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: ANALYST_SYSTEM_PROMPT,
       messages: [{
         role: "user",
