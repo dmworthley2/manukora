@@ -394,7 +394,7 @@ async function runBriefing(
   // 7. Save per-section auditor challenges
   const auditedAt = new Date().toISOString();
   const sectionReviewMap = new Map(
-    auditorResult.section_reviews.map((r) => [r.section_id, r]),
+    (auditorResult.section_reviews ?? []).map((r) => [r.section_id, r]),
   );
   for (const section of analystSections) {
     const review = sectionReviewMap.get(section.id);
@@ -475,7 +475,7 @@ async function runBriefing(
   }
 
   // 10. Finalize blackboard
-  const allChallenges = auditorResult.section_reviews.flatMap((r) => r.challenges ?? []);
+  const allChallenges = (auditorResult.section_reviews ?? []).flatMap((r) => r.challenges ?? []);
   const { error: finalizeError } = await supabase.from("briefing_blackboard").update({
     overall_status: "final",
     conflicts: allChallenges,
