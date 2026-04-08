@@ -127,81 +127,91 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let reportRunId: string | undefined;
-
+  let body: { reportRunId: string; factBundle: unknown; period: string; inventoryReasoningFeed: unknown };
   try {
-    const body = await req.json() as {
-      reportRunId: string;
-      factBundle: unknown;
-      period: string;
-      inventoryReasoningFeed: unknown;
-    };
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
-    reportRunId = body.reportRunId;
-    const { factBundle, period, inventoryReasoningFeed } = body;
+  // Respond 202 immediately so the caller (Vercel) doesn't time out waiting.
+  // All actual work runs in the background via EdgeRuntime.waitUntil.
+  const workPromise = runBriefing(body, supabaseUrl, serviceRoleKey, anthropicApiKey);
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil(workPromise.catch((err: unknown) => {
+    console.error("Unhandled briefing error:", err instanceof Error ? err.message : String(err));
+  }));
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const anthropic = new Anthropic({ apiKey: anthropicApiKey });
+  return new Response(
+    JSON.stringify({ status: "accepted", reportRunId: body.reportRunId }),
+    { status: 202, headers: { "Content-Type": "application/json" } },
+  );
+});
 
-    // 1. Create blackboard
-    const { data: blackboard, error: bbError } = await supabase
-      .from("briefing_blackboard")
-      .insert({
-        report_run_id: reportRunId,
-        iteration: 1,
-        overall_status: "analyst_drafting",
-      })
-      .select()
-      .single();
+async function runBriefing(
+  body: { reportRunId: string; factBundle: unknown; period: string; inventoryReasoningFeed: unknown },
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  anthropicApiKey: string,
+): Promise<void> {
+  const { reportRunId, factBundle, period, inventoryReasoningFeed } = body;
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const anthropic = new Anthropic({ apiKey: anthropicApiKey });
 
-    if (bbError) throw new Error(`Blackboard insert failed: ${bbError.message}`);
+  // 1. Create blackboard
+  const { data: blackboard, error: bbError } = await supabase
+    .from("briefing_blackboard")
+    .insert({ report_run_id: reportRunId, iteration: 1, overall_status: "analyst_drafting" })
+    .select()
+    .single();
 
-    const blackboardId = blackboard.id as string;
+  if (bbError) throw new Error(`Blackboard insert failed: ${bbError.message}`);
+  const blackboardId = blackboard.id as string;
 
-    // Truncate context to avoid exceeding model token limits (~150K chars ≈ ~40K tokens)
-    const MAX_CONTEXT_CHARS = 60_000;
-    const inventoryContext = JSON.stringify(inventoryReasoningFeed ?? []).slice(0, MAX_CONTEXT_CHARS);
-    const factBundleContext = JSON.stringify(factBundle ?? {}).slice(0, MAX_CONTEXT_CHARS);
+  // Truncate context to avoid exceeding model token limits
+  const MAX_CONTEXT_CHARS = 60_000;
+  const inventoryContext = JSON.stringify(inventoryReasoningFeed ?? []).slice(0, MAX_CONTEXT_CHARS);
+  const factBundleContext = JSON.stringify(factBundle ?? {}).slice(0, MAX_CONTEXT_CHARS);
 
-    console.log(`Calling Anthropic analyst for blackboard ${blackboardId}, context sizes: factBundle=${factBundleContext.length}, inventory=${inventoryContext.length}`);
+  console.log(`Analyst call for blackboard ${blackboardId}: factBundle=${factBundleContext.length}chars, inventory=${inventoryContext.length}chars`);
 
-    // 2. Analyst pass
-    let analystMessage;
-    try {
-      analystMessage = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 4096,
-        system: ANALYST_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: `Period: ${period}\n\nFact Bundle:\n${factBundleContext}\n\nInventory Context:\n${inventoryContext}\n\nGenerate the 5-section briefing.`,
-          },
-        ],
-      });
-    } catch (anthropicErr) {
-      const msg = anthropicErr instanceof Error ? anthropicErr.message : String(anthropicErr);
-      console.error(`Anthropic analyst call failed: ${msg}`);
-      await supabase.from("briefing_blackboard").update({ overall_status: "failed", is_final: true }).eq("id", blackboardId);
-      throw anthropicErr;
-    }
+  // 2. Analyst pass
+  let analystMessage;
+  try {
+    analystMessage = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 4096,
+      system: ANALYST_SYSTEM_PROMPT,
+      messages: [{
+        role: "user",
+        content: `Period: ${period}\n\nFact Bundle:\n${factBundleContext}\n\nInventory Context:\n${inventoryContext}\n\nGenerate the 5-section briefing.`,
+      }],
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Anthropic analyst call failed: ${msg}`);
+    await supabase.from("briefing_blackboard").update({ overall_status: "failed", is_final: true }).eq("id", blackboardId);
+    throw err;
+  }
 
-    const analystText =
-      analystMessage.content[0]?.type === "text" ? analystMessage.content[0].text : "";
+  const analystText = analystMessage.content[0]?.type === "text" ? analystMessage.content[0].text : "";
 
-    let analystSections: AnalystSection[] = [];
-    try {
-      const parsed = extractJson(analystText) as { sections?: AnalystSection[] };
-      analystSections = parsed.sections ?? [];
-    } catch (err) {
-      console.error("Failed to parse analyst response:", err);
-      // Continue with empty sections — auditor will flag it
-    }
+  let analystSections: AnalystSection[] = [];
+  try {
+    const parsed = extractJson(analystText) as { sections?: AnalystSection[] };
+    analystSections = parsed.sections ?? [];
+  } catch (err) {
+    console.error("Failed to parse analyst response:", err);
+  }
 
-    // 3. Insert sections
-    if (analystSections.length > 0) {
-      const now = new Date().toISOString();
-      const sectionInserts = analystSections.map((s) => ({
+  // 3. Insert sections
+  if (analystSections.length > 0) {
+    const now = new Date().toISOString();
+    const { error: sectionsError } = await supabase.from("briefing_section").insert(
+      analystSections.map((s) => ({
         blackboard_id: blackboardId,
         section_id: s.id,
         title: s.title,
@@ -209,101 +219,54 @@ Deno.serve(async (req: Request) => {
         analyst_submitted_at: now,
         auditor_status: "pending",
         is_approved: false,
-      }));
-
-      const { error: sectionsError } = await supabase
-        .from("briefing_section")
-        .insert(sectionInserts);
-
-      if (sectionsError) {
-        console.error("Sections insert failed:", sectionsError.message);
-      }
-    }
-
-    // 4. Auditor pass
-    const sectionsText = analystSections
-      .map((s) => `## ${s.title}\n${s.content}`)
-      .join("\n\n");
-
-    const auditorMessage = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2048,
-      system: AUDITOR_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `Period: ${period}\n\nInventory Context:\n${inventoryContext}\n\nBriefing to audit:\n${sectionsText}\n\nAudit this briefing.`,
-        },
-      ],
-    });
-
-    const auditorText =
-      auditorMessage.content[0]?.type === "text" ? auditorMessage.content[0].text : "";
-
-    let auditorResult: AuditorResult = {
-      approved: true,
-      hasIssues: false,
-      challenges: [],
-      summary: "Approved",
-    };
-
-    try {
-      auditorResult = extractJson(auditorText) as AuditorResult;
-    } catch (err) {
-      console.error("Failed to parse auditor response:", err);
-    }
-
-    // 5. Update sections with auditor verdict
-    const auditorStatus = auditorResult.approved ? "approved" : "challenged";
-    const auditedAt = new Date().toISOString();
-
-    for (const section of analystSections) {
-      await supabase
-        .from("briefing_section")
-        .update({
-          auditor_status: auditorStatus,
-          auditor_notes: auditorResult.summary,
-          auditor_reviewed_at: auditedAt,
-          is_approved: auditorResult.approved,
-          auditor_challenges: auditorResult.challenges?.length
-            ? auditorResult.challenges
-            : null,
-        })
-        .eq("blackboard_id", blackboardId)
-        .eq("section_id", section.id);
-    }
-
-    // 6. Finalize blackboard
-    const { error: finalizeError } = await supabase
-      .from("briefing_blackboard")
-      .update({
-        overall_status: "final",
-        sections: analystSections,
-        conflicts: auditorResult.challenges ?? [],
-        approval_summary: auditorResult,
-        is_final: true,
-        auditor_completed_review_at: new Date().toISOString(),
-      })
-      .eq("id", blackboardId);
-
-    if (finalizeError) {
-      console.error("Blackboard finalize failed:", finalizeError.message);
-    }
-
-    console.log(`Briefing complete for report run ${reportRunId}, blackboard ${blackboardId}`);
-
-    return new Response(
-      JSON.stringify({ success: true, blackboardId }),
-      { headers: { "Content-Type": "application/json" } },
+      })),
     );
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`Briefing worker failed for ${reportRunId}: ${message}`);
-
-    return new Response(
-      JSON.stringify({ success: false, error: message }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    if (sectionsError) console.error("Sections insert failed:", sectionsError.message);
   }
 
-});
+  // 4. Auditor pass
+  const sectionsText = analystSections.map((s) => `## ${s.title}\n${s.content}`).join("\n\n");
+  const auditorMessage = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 2048,
+    system: AUDITOR_SYSTEM_PROMPT,
+    messages: [{
+      role: "user",
+      content: `Period: ${period}\n\nInventory Context:\n${inventoryContext}\n\nBriefing to audit:\n${sectionsText}\n\nAudit this briefing.`,
+    }],
+  });
+
+  const auditorText = auditorMessage.content[0]?.type === "text" ? auditorMessage.content[0].text : "";
+  let auditorResult: AuditorResult = { approved: true, hasIssues: false, challenges: [], summary: "Approved" };
+  try {
+    auditorResult = extractJson(auditorText) as AuditorResult;
+  } catch (err) {
+    console.error("Failed to parse auditor response:", err);
+  }
+
+  // 5. Update sections with auditor verdict
+  const auditorStatus = auditorResult.approved ? "approved" : "challenged";
+  const auditedAt = new Date().toISOString();
+  for (const section of analystSections) {
+    await supabase.from("briefing_section").update({
+      auditor_status: auditorStatus,
+      auditor_notes: auditorResult.summary,
+      auditor_reviewed_at: auditedAt,
+      is_approved: auditorResult.approved,
+      auditor_challenges: auditorResult.challenges?.length ? auditorResult.challenges : null,
+    }).eq("blackboard_id", blackboardId).eq("section_id", section.id);
+  }
+
+  // 6. Finalize blackboard
+  const { error: finalizeError } = await supabase.from("briefing_blackboard").update({
+    overall_status: "final",
+    sections: analystSections,
+    conflicts: auditorResult.challenges ?? [],
+    approval_summary: auditorResult,
+    is_final: true,
+    auditor_completed_review_at: new Date().toISOString(),
+  }).eq("id", blackboardId);
+
+  if (finalizeError) console.error("Blackboard finalize failed:", finalizeError.message);
+  console.log(`Briefing complete for report run ${reportRunId}, blackboard ${blackboardId}`);
+}

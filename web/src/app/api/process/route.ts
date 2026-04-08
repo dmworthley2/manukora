@@ -1,25 +1,25 @@
 /**
  * Trigger briefing generation via Supabase Edge Function.
- * Uses supabase.functions.invoke() so the SDK handles auth headers automatically.
- * Fire-and-forget: errors are logged but not rethrown.
+ * Awaits the 202 acknowledgment before returning — the edge function then processes
+ * in background via EdgeRuntime.waitUntil, so this returns almost immediately.
  */
-function triggerBriefingEdgeFunction(
+async function triggerBriefingEdgeFunction(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   client: any,
   reportRunId: string,
   factBundle: unknown,
   period: string,
   inventoryReasoningFeed: unknown,
-): void {
+): Promise<void> {
   console.log(`[Briefing] Invoking edge function for report run ${reportRunId}`);
-  client.functions
-    .invoke("briefing-worker", {
-      body: { reportRunId, factBundle, period, inventoryReasoningFeed },
-    })
-    .then(() => console.log(`[Briefing] Edge function invoked successfully for ${reportRunId}`))
-    .catch((err: unknown) => {
-      console.error(`[Briefing] Edge function trigger failed for ${reportRunId}:`, err);
-    });
+  const { error } = await client.functions.invoke("briefing-worker", {
+    body: { reportRunId, factBundle, period, inventoryReasoningFeed },
+  });
+  if (error) {
+    console.error(`[Briefing] Edge function invoke error for ${reportRunId}:`, error);
+  } else {
+    console.log(`[Briefing] Edge function accepted for ${reportRunId}`);
+  }
 }
 
 export async function POST(req: Request) {
@@ -213,9 +213,10 @@ export async function POST(req: Request) {
       });
     }
 
-    // Trigger briefing generation via Supabase Edge Function (fire-and-forget)
+    // Trigger briefing generation — awaits 202 acknowledgment, then edge function
+    // processes in background (EdgeRuntime.waitUntil). Returns in < 1 second.
     if (result.factBundle) {
-      triggerBriefingEdgeFunction(
+      await triggerBriefingEdgeFunction(
         client,
         reportRun.id,
         result.factBundle,
