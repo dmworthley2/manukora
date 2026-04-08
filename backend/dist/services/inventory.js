@@ -17,9 +17,11 @@ export async function upsertProductCatalog(client, products) {
     }
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rows = products.map(({ upload_id: _u, ...rest }) => rest);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await client
             .from("product_catalog")
-            .upsert(products, { onConflict: "sku,upload_id" });
+            .upsert(rows, { onConflict: "sku" });
         if (error) {
             log.error("product_catalog.upsert failed", { errorMessage: error.message });
             return { success: false, error: error.message };
@@ -46,9 +48,11 @@ export async function upsertInventoryState(client, inventory) {
     }
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rows = inventory.map(({ upload_id: _u, ...rest }) => rest);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await client
             .from("inventory_state")
-            .upsert(inventory, { onConflict: "sku,upload_id" });
+            .upsert(rows, { onConflict: "sku" });
         if (error) {
             log.error("inventory_state.upsert failed", { errorMessage: error.message });
             return { success: false, error: error.message };
@@ -76,9 +80,11 @@ export async function insertSalesHistory(client, sales) {
     }
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rows = sales.map(({ upload_id: _u, ...rest }) => rest);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error, data } = await client
             .from("sales_history")
-            .upsert(sales, { onConflict: "sku,channel,month_period,upload_id" })
+            .upsert(rows, { onConflict: "sku,channel,month_period" })
             .select();
         if (error) {
             log.error("sales_history.upsert failed", { errorMessage: error.message });
