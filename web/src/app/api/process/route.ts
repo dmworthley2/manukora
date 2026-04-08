@@ -11,12 +11,14 @@ function triggerBriefingEdgeFunction(
   period: string,
   inventoryReasoningFeed: unknown,
 ): void {
+  console.log(`[Briefing] Invoking edge function for report run ${reportRunId}`);
   client.functions
     .invoke("briefing-worker", {
       body: { reportRunId, factBundle, period, inventoryReasoningFeed },
     })
+    .then(() => console.log(`[Briefing] Edge function invoked successfully for ${reportRunId}`))
     .catch((err: unknown) => {
-      console.error(`Briefing edge function trigger failed for ${reportRunId}:`, err);
+      console.error(`[Briefing] Edge function trigger failed for ${reportRunId}:`, err);
     });
 }
 
