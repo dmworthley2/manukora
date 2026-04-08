@@ -1,7 +1,7 @@
 /**
  * Supabase Edge Function: briefing-worker
- * Runs analyst → auditor pipeline independently of Vercel's execution limits.
- * Triggered via HTTP POST from /api/process after CSV upload.
+ * Queries inventory tables directly, runs analyst → auditor pipeline.
+ * Triggered via POST from /api/briefings/generate.
  */
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -42,7 +42,7 @@ Return a JSON object with this exact structure:
 const AUDITOR_SYSTEM_PROMPT = `You are a Senior CFO auditor. Fact-check the briefing against the Inventory Context provided.
 
 Check:
-1. **Numerical accuracy** — Verify revenue (price × units), days of cover ((on_hand ÷ (M4_units ÷ 30))), trends ((M4-M1)/M1×100%). Reject if >5% off.
+1. **Numerical accuracy** — Verify revenue (price × units), days of cover, trends. Reject if >5% off.
 2. **Hallucinations** — Every SKU and fact must exist in Inventory Context.
 3. **Assumptions** — Surface unstated assumptions (lead times, demand stability, order quantities).
 4. **Trade-offs** — Challenge unexplained priority choices.
@@ -88,7 +88,6 @@ type AuditorResult = {
 // ---------------------------------------------------------------------------
 
 function extractJson(text: string): unknown {
-  // Try to extract JSON from LLM output (may have surrounding text)
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("No JSON object found in response");
   return JSON.parse(match[0]);
@@ -127,7 +126,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let body: { reportRunId: string; factBundle: unknown; period: string; inventoryReasoningFeed: unknown };
+  let body: { reportRunId: string };
   try {
     body = await req.json();
   } catch {
@@ -137,9 +136,8 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Respond 202 immediately so the caller (Vercel) doesn't time out waiting.
-  // All actual work runs in the background via EdgeRuntime.waitUntil.
-  const workPromise = runBriefing(body, supabaseUrl, serviceRoleKey, anthropicApiKey);
+  // Respond 202 immediately — all work runs in EdgeRuntime.waitUntil background
+  const workPromise = runBriefing(body.reportRunId, supabaseUrl, serviceRoleKey, anthropicApiKey);
   // deno-lint-ignore no-explicit-any
   (globalThis as any).EdgeRuntime?.waitUntil(workPromise.catch((err: unknown) => {
     console.error("Unhandled briefing error:", err instanceof Error ? err.message : String(err));
@@ -152,16 +150,41 @@ Deno.serve(async (req: Request) => {
 });
 
 async function runBriefing(
-  body: { reportRunId: string; factBundle: unknown; period: string; inventoryReasoningFeed: unknown },
+  reportRunId: string,
   supabaseUrl: string,
   serviceRoleKey: string,
   anthropicApiKey: string,
 ): Promise<void> {
-  const { reportRunId, factBundle, period, inventoryReasoningFeed } = body;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
   const anthropic = new Anthropic({ apiKey: anthropicApiKey });
 
-  // 1. Create blackboard
+  // 1. Query inventory data directly from tables
+  const [feedResult, salesResult] = await Promise.all([
+    supabase.from("agent_reasoning_feed").select("*"),
+    supabase.from("sales_history").select("sku, channel, month_period, units_sold").order("sku").order("month_period"),
+  ]);
+
+  if (feedResult.error) {
+    throw new Error(`Failed to query agent_reasoning_feed: ${feedResult.error.message}`);
+  }
+  if (salesResult.error) {
+    console.error("Failed to query sales_history:", salesResult.error.message);
+  }
+
+  const inventoryRows = feedResult.data ?? [];
+  const salesRows = salesResult.data ?? [];
+
+  console.log(`Loaded ${inventoryRows.length} SKUs from agent_reasoning_feed, ${salesRows.length} sales records`);
+
+  if (inventoryRows.length === 0) {
+    throw new Error("No inventory data found — upload a CSV first");
+  }
+
+  // 2. Build context strings
+  const inventoryContext = JSON.stringify(inventoryRows).slice(0, 40_000);
+  const salesContext = JSON.stringify(salesRows).slice(0, 20_000);
+
+  // 3. Create blackboard
   const { data: blackboard, error: bbError } = await supabase
     .from("briefing_blackboard")
     .insert({ report_run_id: reportRunId, iteration: 1, overall_status: "analyst_drafting" })
@@ -171,13 +194,9 @@ async function runBriefing(
   if (bbError) throw new Error(`Blackboard insert failed: ${bbError.message}`);
   const blackboardId = blackboard.id as string;
 
-  // Truncate context — Haiku has a 200K context window but we need room for output
-  const inventoryContext = JSON.stringify(inventoryReasoningFeed ?? []).slice(0, 30_000);
-  const factBundleContext = JSON.stringify(factBundle ?? {}).slice(0, 20_000);
+  console.log(`Analyst call for blackboard ${blackboardId}`);
 
-  console.log(`Analyst call for blackboard ${blackboardId}: factBundle=${factBundleContext.length}chars, inventory=${inventoryContext.length}chars`);
-
-  // 2. Analyst pass
+  // 4. Analyst pass
   let analystMessage;
   try {
     analystMessage = await anthropic.messages.create({
@@ -186,7 +205,7 @@ async function runBriefing(
       system: ANALYST_SYSTEM_PROMPT,
       messages: [{
         role: "user",
-        content: `Period: ${period}\n\nFact Bundle:\n${factBundleContext}\n\nInventory Context:\n${inventoryContext}\n\nGenerate the 5-section briefing.`,
+        content: `Inventory Metrics (per SKU):\n${inventoryContext}\n\nSales History:\n${salesContext}\n\nGenerate the 5-section briefing.`,
       }],
     });
   } catch (err) {
@@ -197,7 +216,6 @@ async function runBriefing(
   }
 
   const analystText = analystMessage.content[0]?.type === "text" ? analystMessage.content[0].text : "";
-
   let analystSections: AnalystSection[] = [];
   try {
     const parsed = extractJson(analystText) as { sections?: AnalystSection[] };
@@ -206,7 +224,7 @@ async function runBriefing(
     console.error("Failed to parse analyst response:", err);
   }
 
-  // 3. Insert sections
+  // 5. Insert sections
   if (analystSections.length > 0) {
     const now = new Date().toISOString();
     const { error: sectionsError } = await supabase.from("briefing_section").insert(
@@ -223,7 +241,7 @@ async function runBriefing(
     if (sectionsError) console.error("Sections insert failed:", sectionsError.message);
   }
 
-  // 4. Auditor pass
+  // 6. Auditor pass
   const sectionsText = analystSections.map((s) => `## ${s.title}\n${s.content}`).join("\n\n");
   const auditorMessage = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
@@ -231,7 +249,7 @@ async function runBriefing(
     system: AUDITOR_SYSTEM_PROMPT,
     messages: [{
       role: "user",
-      content: `Period: ${period}\n\nInventory Context:\n${inventoryContext}\n\nBriefing to audit:\n${sectionsText}\n\nAudit this briefing.`,
+      content: `Inventory Context:\n${inventoryContext}\n\nBriefing to audit:\n${sectionsText}\n\nAudit this briefing.`,
     }],
   });
 
@@ -243,7 +261,7 @@ async function runBriefing(
     console.error("Failed to parse auditor response:", err);
   }
 
-  // 5. Update sections with auditor verdict
+  // 7. Update sections with auditor verdict
   const auditorStatus = auditorResult.approved ? "approved" : "challenged";
   const auditedAt = new Date().toISOString();
   for (const section of analystSections) {
@@ -256,7 +274,7 @@ async function runBriefing(
     }).eq("blackboard_id", blackboardId).eq("section_id", section.id);
   }
 
-  // 6. Finalize blackboard
+  // 8. Finalize
   const { error: finalizeError } = await supabase.from("briefing_blackboard").update({
     overall_status: "final",
     sections: analystSections,

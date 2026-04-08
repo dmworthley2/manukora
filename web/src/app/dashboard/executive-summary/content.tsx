@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronDown, TrendingUp, AlertCircle, TrendingDown } from "lucide-react";
+import { ChevronDown, TrendingUp, AlertCircle, TrendingDown, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/contexts/DataSourceContext";
 
 interface AuditorChallenge {
@@ -75,93 +76,100 @@ export default function ExecutiveSummaryContent() {
   // Prefer query param (direct link) over context (post-upload navigation)
   const reportRunId = searchParams.get("reportRunId") ?? latestReportRunId;
 
+  const [activeReportRunId, setActiveReportRunId] = useState<string | null>(null);
   const [briefing, setBriefing] = useState<BriefingResponse | null>(null);
   const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
   const [pollAttempts, setPollAttempts] = useState(0);
 
-  useEffect(() => {
-    if (!reportRunId) {
-      setLoading(false);
-      return;
-    }
+  const startPolling = useCallback((runId: string) => {
+    setLoading(true);
+    setError(null);
+    setBriefing(null);
+    setPollAttempts(0);
 
-    let pollInterval: NodeJS.Timeout | null = null;
+    let attempt = 0;
     let cancelled = false;
 
     const fetchBriefing = async (): Promise<boolean> => {
       try {
-        const response = await fetch(`/api/briefings/${reportRunId}`);
-        if (response.status === 404) return false; // Not ready yet
+        const response = await fetch(`/api/briefings/${runId}`);
+        if (response.status === 404) return false;
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
         const data = (await response.json()) as BriefingResponse;
         if (cancelled) return true;
         setBriefing(data);
         setError(null);
         setLoading(false);
-
-        // Fetch metrics after briefing loads
-        fetch(`/api/briefings/${reportRunId}/metrics`)
+        setGenerating(false);
+        fetch(`/api/briefings/${runId}/metrics`)
           .then((r) => r.ok ? r.json() : null)
-          .then((data) => { if (data && !cancelled) setMetrics(data as MetricsResponse); })
+          .then((d) => { if (d && !cancelled) setMetrics(d as MetricsResponse); })
           .catch(() => {});
-
         return true;
       } catch (err) {
         if (cancelled) return false;
         setError(err instanceof Error ? err.message : "Failed to load briefing");
         setLoading(false);
+        setGenerating(false);
         return false;
       }
     };
 
-    const startPolling = async () => {
+    const poll = async () => {
       const ready = await fetchBriefing();
       if (ready || cancelled) return;
 
-      let attempt = 0;
-      pollInterval = setInterval(async () => {
-        if (cancelled) {
-          clearInterval(pollInterval!);
-          return;
-        }
-
+      const interval = setInterval(async () => {
+        if (cancelled) { clearInterval(interval); return; }
         attempt++;
         setPollAttempts(attempt);
-
         if (attempt >= MAX_POLL_ATTEMPTS) {
-          clearInterval(pollInterval!);
-          setError("Briefing is taking longer than expected. Refresh the page to check again.");
+          clearInterval(interval);
+          setError("Analysis is taking longer than expected. Please try again.");
           setLoading(false);
+          setGenerating(false);
           return;
         }
-
         const ready = await fetchBriefing();
-        if (ready && pollInterval) clearInterval(pollInterval);
+        if (ready) clearInterval(interval);
       }, POLL_INTERVAL_MS);
+
+      return () => { cancelled = true; clearInterval(interval); };
     };
 
-    startPolling();
-    return () => {
-      cancelled = true;
-      if (pollInterval) clearInterval(pollInterval);
-    };
+    poll();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleGenerate = useCallback(async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/briefings/generate", { method: "POST" });
+      const data = await res.json() as { reportRunId?: string; error?: string };
+      if (!res.ok || !data.reportRunId) {
+        setError(data.error ?? "Failed to start analysis");
+        setGenerating(false);
+        return;
+      }
+      setActiveReportRunId(data.reportRunId);
+      startPolling(data.reportRunId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start analysis");
+      setGenerating(false);
+    }
+  }, [startPolling]);
+
+  // On mount: if we have a reportRunId from URL or context, try to load existing briefing
+  useEffect(() => {
+    if (!reportRunId) return;
+    startPolling(reportRunId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportRunId]);
-
-  // No reportRunId — show prompt to upload
-  if (!reportRunId) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center text-[#4d4635]">
-          <p className="text-lg font-medium mb-2">No briefing yet</p>
-          <p className="text-sm opacity-70">Upload a CSV from Data Sources to generate your first briefing.</p>
-        </div>
-      </div>
-    );
-  }
 
   const executiveSummarySection = briefing?.sections.find((s) => s.section_id === "executive-summary");
   const capitalAllocationSection = briefing?.sections.find((s) => s.section_id === "capital-allocation");
@@ -198,10 +206,22 @@ export default function ExecutiveSummaryContent() {
               <p className="text-[#4d4635] text-lg max-w-xl leading-relaxed">
                 {briefing
                   ? `Synthesis of marketplace performance, supply chain risks, and strategic opportunities for ${briefing.period}.`
-                  : "Generating your briefing from uploaded data…"}
+                  : loading
+                  ? "Analysing your inventory data — this takes about a minute…"
+                  : "Upload your inventory CSV, then generate a CFO-level briefing from your data."}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-center">
+              {!briefing && !loading && (
+                <Button
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  className="bg-[#775a00] hover:bg-[#5a4200] text-white px-6 py-2.5 rounded-sm font-bold uppercase tracking-widest text-xs flex items-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Generate Analysis
+                </Button>
+              )}
               <div className="px-4 py-2 bg-[#f9f5eb] rounded-full flex items-center gap-2 border border-[#d0c5af]/30">
                 <span className={`w-1.5 h-1.5 rounded-full ${loading ? "bg-[#775a00] animate-pulse" : "bg-[#3f6653]"}`} />
                 <span className="text-xs font-bold text-[#4d4635] uppercase tracking-widest">
@@ -256,7 +276,20 @@ export default function ExecutiveSummaryContent() {
                   )}
                 </div>
               ) : (
-                <p className="text-[#4d4635]">No briefing content available.</p>
+                <div className="flex flex-col items-start gap-6 py-8">
+                  <p className="text-[#4d4635] text-base leading-relaxed max-w-md">
+                    No briefing has been generated yet. Upload your inventory CSV and click{" "}
+                    <strong>Generate Analysis</strong> to get your CFO-level briefing.
+                  </p>
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={generating}
+                    className="bg-[#775a00] hover:bg-[#5a4200] text-white px-6 py-2.5 rounded-sm font-bold uppercase tracking-widest text-xs flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Generate Analysis
+                  </Button>
+                </div>
               )}
             </div>
           </div>

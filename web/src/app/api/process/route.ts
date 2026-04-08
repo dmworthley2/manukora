@@ -1,27 +1,3 @@
-/**
- * Trigger briefing generation via Supabase Edge Function.
- * Awaits the 202 acknowledgment before returning — the edge function then processes
- * in background via EdgeRuntime.waitUntil, so this returns almost immediately.
- */
-async function triggerBriefingEdgeFunction(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  client: any,
-  reportRunId: string,
-  factBundle: unknown,
-  period: string,
-  inventoryReasoningFeed: unknown,
-): Promise<void> {
-  console.log(`[Briefing] Invoking edge function for report run ${reportRunId}`);
-  const { error } = await client.functions.invoke("briefing-worker", {
-    body: { reportRunId, factBundle, period, inventoryReasoningFeed },
-  });
-  if (error) {
-    console.error(`[Briefing] Edge function invoke error for ${reportRunId}:`, error);
-  } else {
-    console.log(`[Briefing] Edge function accepted for ${reportRunId}`);
-  }
-}
-
 export async function POST(req: Request) {
   try {
     const {
@@ -29,18 +5,15 @@ export async function POST(req: Request) {
       inferFieldMapping,
       createSupabaseAdminClient,
       createReportRun,
-      finalizeRun,
       loadEnv,
       uploadCsv,
       extractInventoryDataWithUploadId,
       inventory,
-      calculateReorderRecommendations,
-      getSellThroughAnalysis,
     } = await import("@manukora/backend");
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const period = (formData.get("period") as string) || new Date().toISOString().slice(0, 7); // YYYY-MM
+    const period = (formData.get("period") as string) || new Date().toISOString().slice(0, 7);
 
     if (!file) {
       return Response.json({ error: "No file provided" }, { status: 400 });
@@ -48,8 +21,7 @@ export async function POST(req: Request) {
 
     const csvBytes = new Uint8Array(await file.arrayBuffer());
     const csvText = new TextDecoder().decode(csvBytes);
-    const lines = csvText.split("\n");
-    const headers = lines[0]?.split(",").map((h) => h.trim()) || [];
+    const headers = csvText.split("\n")[0]?.split(",").map((h) => h.trim()) || [];
 
     // Auto-detect field mapping
     let fieldMapping;
@@ -62,179 +34,88 @@ export async function POST(req: Request) {
       );
     }
 
-    // Process CSV
-    console.log("[CSV Process] Starting CSV processing with fieldMapping:", Object.entries(fieldMapping).slice(0, 5));
+    // Parse and validate CSV
     const result = processCsv(csvBytes, { fieldMapping });
-
-    console.log(`[CSV Process] Result success=${result.success}, errors=${result.errors.length}`);
-
     if (!result.success) {
-      // Log all errors for debugging
-      console.error("[CSV Process] Validation failed:", result.errors);
-
-      // Get detailed error messages for debugging
-      const errorMessages = result.errors.map(e => {
+      const errorMessages = result.errors.map((e) => {
         let msg = `[${e.stage}] ${e.message}`;
         if (e.detail) {
           if (Array.isArray(e.detail)) {
-            msg += `: ${e.detail.map(d => {
-              if (typeof d === 'object' && d !== null) {
-                return `field=${(d as any).field}, value="${(d as any).value}", reason=${(d as any).reason}`;
-              }
-              return JSON.stringify(d);
-            }).join(' | ')}`;
+            msg += `: ${e.detail
+              .map((d) => {
+                if (typeof d === "object" && d !== null) {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  return `field=${(d as any).field}, value="${(d as any).value}", reason=${(d as any).reason}`;
+                }
+                return JSON.stringify(d);
+              })
+              .join(" | ")}`;
           } else {
             msg += `: ${JSON.stringify(e.detail).substring(0, 200)}`;
           }
         }
         return msg;
       });
-
-      console.error("[CSV Process] Error messages:", errorMessages);
-
-      return Response.json(
-        {
-          error: "CSV validation failed",
-          details: errorMessages,
-          fullErrors: result.errors,
-        },
-        { status: 400 },
-      );
+      return Response.json({ error: "CSV validation failed", details: errorMessages }, { status: 400 });
     }
 
-    console.log(`[CSV Process] CSV validated successfully, ${result.rows?.length || 0} rows`);
-
-    // Store upload and create report
     const env = loadEnv();
     const client = createSupabaseAdminClient(env);
 
+    // Store the raw CSV file
     const uploadRow = await uploadCsv(client, csvBytes, {
       originalFilename: file.name,
       contentType: file.type || "text/csv",
     });
 
-    // Extract and store inventory data
-    // Fail the entire upload if inventory processing fails
-    let inventoryReasoningFeed = null;
-
-    if (result.success && result.rows) {
-      try {
-        const inventoryData = extractInventoryDataWithUploadId(result.rows, fieldMapping, uploadRow.id);
-
-        // Insert into database
-        const catalogResult = await inventory.upsertProductCatalog(client, inventoryData.products);
-        if (!catalogResult.success) {
-          throw new Error(`Product catalog insert failed: ${catalogResult.error}`);
-        }
-
-        const inventoryResult = await inventory.upsertInventoryState(
-          client,
-          inventoryData.inventoryState,
-        );
-        if (!inventoryResult.success) {
-          throw new Error(`Inventory state insert failed: ${inventoryResult.error}`);
-        }
-
-        const salesResult = await inventory.insertSalesHistory(client, inventoryData.salesHistory);
-        if (!salesResult.success) {
-          throw new Error(`Sales history insert failed: ${salesResult.error}`);
-        }
-
-        // Query reasoning feed and filter to only SKUs from this upload
-        const fullFeed = await inventory.queryAgentReasoningFeed(client);
-        const uploadSkus = new Set(inventoryData.products.map((p) => p.sku));
-        inventoryReasoningFeed = fullFeed ? fullFeed.filter((row) => uploadSkus.has(row.sku)) : null;
-
-        // Enrich fact bundle with inventory analysis if successful
-        if (result.factBundle && inventoryReasoningFeed && inventoryReasoningFeed.length > 0) {
-          const { recommendations, flags } = calculateReorderRecommendations(inventoryReasoningFeed);
-          const sellThroughAnalysis = getSellThroughAnalysis(inventoryReasoningFeed);
-
-          // Categorize cover risks by level
-          const coverRisks: { critical: string[]; high: string[]; medium: string[] } = {
-            critical: [],
-            high: [],
-            medium: [],
-          };
-
-          for (const row of inventoryReasoningFeed) {
-            const daysOfCover = Math.round(row.months_of_cover * 30);
-            const targetDays = row.target_months_cover * 30;
-
-            if (daysOfCover < 10) {
-              coverRisks.critical.push(row.sku);
-            } else if (daysOfCover < targetDays / 2) {
-              coverRisks.high.push(row.sku);
-            } else if (daysOfCover < targetDays) {
-              coverRisks.medium.push(row.sku);
-            }
-          }
-
-          // Enrich fact bundle with inventory analysis by creating new object
-          result.factBundle = {
-            ...result.factBundle,
-            inventoryAnalysis: {
-              reorderRecommendations: recommendations,
-              sellThroughAnalysis: {
-                topPerformers: sellThroughAnalysis.topPerformers.map((p) => p.sku),
-                poorPerformers: sellThroughAnalysis.poorPerformers.map((p) => p.sku),
-                decliners: sellThroughAnalysis.decliners.map((d) => d.sku),
-              },
-              coverRisks,
-              specialCases: flags,
-            },
-          };
-        }
-      } catch (err) {
-        // Fail the entire upload if inventory processing fails
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[CSV Process] Inventory processing failed:", message);
-        return Response.json(
-          { error: "Inventory data processing failed", details: message },
-          { status: 400 },
-        );
-      }
+    if (!result.rows) {
+      return Response.json({ error: "No rows parsed from CSV" }, { status: 400 });
     }
 
+    // Truncate existing inventory tables before loading fresh data
+    await Promise.all([
+      client.from("product_catalog").delete().neq("sku", ""),
+      client.from("inventory_state").delete().neq("sku", ""),
+      client.from("sales_history").delete().neq("sku", ""),
+    ]);
+
+    // Insert inventory data
+    const inventoryData = extractInventoryDataWithUploadId(result.rows, fieldMapping, uploadRow.id);
+
+    const catalogResult = await inventory.upsertProductCatalog(client, inventoryData.products);
+    if (!catalogResult.success) {
+      return Response.json({ error: `Product catalog insert failed: ${catalogResult.error}` }, { status: 400 });
+    }
+
+    const inventoryResult = await inventory.upsertInventoryState(client, inventoryData.inventoryState);
+    if (!inventoryResult.success) {
+      return Response.json({ error: `Inventory state insert failed: ${inventoryResult.error}` }, { status: 400 });
+    }
+
+    const salesResult = await inventory.insertSalesHistory(client, inventoryData.salesHistory);
+    if (!salesResult.success) {
+      return Response.json({ error: `Sales history insert failed: ${salesResult.error}` }, { status: 400 });
+    }
+
+    // Record the upload
     const reportRun = await createReportRun(client, {
       period,
       uploadId: uploadRow.id,
       status: "completed",
       metadata: {
-        rowCount: result.rows?.length || 0,
-        uniqueSkus: result.factBundle?.metadata.uniqueSkus || 0,
-        recommendationCount: result.factBundle?.reorderRecommendations.length || 0,
-        inventoryDataInserted: inventoryReasoningFeed !== null,
+        rowCount: result.rows.length,
+        uniqueSkus: inventoryData.products.length,
       },
     });
-
-    // Finalize with fact bundle
-    if (result.factBundle) {
-      await finalizeRun(client, reportRun.id, {
-        factBundle: Buffer.from(JSON.stringify(result.factBundle, null, 2)),
-      });
-    }
-
-    // Trigger briefing generation — awaits 202 acknowledgment, then edge function
-    // processes in background (EdgeRuntime.waitUntil). Returns in < 1 second.
-    if (result.factBundle) {
-      await triggerBriefingEdgeFunction(
-        client,
-        reportRun.id,
-        result.factBundle,
-        period,
-        inventoryReasoningFeed,
-      );
-    }
 
     return Response.json(
       {
         success: true,
         reportRunId: reportRun.id,
         uploadId: uploadRow.id,
-        factBundle: result.factBundle,
+        rowCount: result.rows.length,
+        skuCount: inventoryData.products.length,
         warnings: result.warnings || [],
-        inventoryDataInserted: inventoryReasoningFeed !== null,
       },
       { status: 201 },
     );
