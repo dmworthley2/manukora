@@ -30,34 +30,21 @@ Rules:
 - TOTAL briefing must be under 500 words across all 5 sections combined. Be ruthlessly concise.
 - Do NOT invent SKUs or numbers. Use only data provided.
 - Every claim about trend must cite the sales history months (e.g. "M2→M4: +40%").
-- Think like a CFO: prioritize by capital impact, flag the conflicts, skip the filler.`;
+- Think like a CFO: prioritize by capital impact, flag the conflicts, skip the filler.
+- Section IDs must be exactly: executive-summary, capital-allocation, risk-opportunity, reorder-recommendations, next-steps.`;
 
 const AUDITOR_SYSTEM_PROMPT = `You are a Lead in Accounting reviewing an executive briefing before it goes to the CFO. You have two jobs: verify the numbers are accurate, and validate that the overall message is clear, honest, and appropriate for a senior audience.
 
-Check:
-1. **Numerical accuracy** — Verify revenue (price × units), days of cover, and cited sales trends against the inventory and sales data. Flag if >5% off.
-2. **Data integrity** — Every SKU, figure, and trend claim must be traceable to the provided data. Flag anything that cannot be verified.
-3. **Messaging quality** — Is the briefing clear and direct? Flag vague language, buried urgency, or recommendations that don't follow from the data.
-4. **Unstated assumptions** — Surface any assumptions the analyst made but didn't disclose (lead times, demand stability, reorder quantities).
+For each section, raise specific challenges where you find issues. A challenge is a concrete, written point — not a vague concern. The analyst will read your challenge alongside their original analysis and decide whether to incorporate your point or defend their original position. Your challenges must be precise enough that the analyst can make that decision.
+
+Check each section for:
+1. **Numerical accuracy** — Verify revenue (price × units), days of cover, cited sales trends. Flag if >5% off.
+2. **Data integrity** — Every SKU, figure, and trend claim must be traceable to the provided data.
+3. **Messaging quality** — Flag vague language, buried urgency, or recommendations that don't follow from the data.
+4. **Unstated assumptions** — Surface lead times, demand stability, or reorder quantities the analyst assumed but didn't disclose.
 5. **Policy compliance** — Propolis: deprioritize unless cover <30 days. MGO 1700+: use 3-month (90 day) target. Bioactive Blends: trend is M2–M4 only (launched mid-Jan 2026).
 
-Return a JSON object:
-{
-  "approved": true | false,
-  "hasIssues": true | false,
-  "challenges": [
-    {
-      "id": "challenge-1",
-      "type": "numerical" | "hallucination" | "assumption" | "tradeoff" | "policy",
-      "section": "capital-allocation",
-      "claim": "exact claim from briefing",
-      "question": "specific question",
-      "severity": "error" | "assumption" | "concern",
-      "requestedAction": "what analyst should do"
-    }
-  ],
-  "summary": "brief summary"
-}`;
+If a section has no issues, leave its challenges array empty and set approved: true.`;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,11 +56,33 @@ type AnalystSection = {
   content: string;
 };
 
-type AuditorResult = {
+type AuditorChallenge = {
+  id: string;
+  type: string;
+  claim: string;
+  question: string;
+  severity: string;
+  requestedAction: string;
+};
+
+type AuditorSectionReview = {
+  section_id: string;
   approved: boolean;
-  hasIssues: boolean;
-  challenges: unknown[];
+  challenges: AuditorChallenge[];
+  notes: string;
+};
+
+type AuditorResult = {
+  section_reviews: AuditorSectionReview[];
+  overall_approved: boolean;
   summary: string;
+};
+
+type AnalystSectionResponse = {
+  section_id: string;
+  resolution_type: "incorporated" | "rejected";
+  reasoning: string;
+  final_content: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -91,7 +100,7 @@ const ANALYST_TOOL = {
         items: {
           type: "object",
           properties: {
-            id: { type: "string" },
+            id: { type: "string", enum: ["executive-summary", "capital-allocation", "risk-opportunity", "reorder-recommendations", "next-steps"] },
             title: { type: "string" },
             content: { type: "string" },
           },
@@ -106,31 +115,75 @@ const ANALYST_TOOL = {
 
 const AUDITOR_TOOL = {
   name: "audit_briefing",
-  description: "Audit a briefing against inventory data and return structured findings.",
+  description: "Audit each section of a briefing and return per-section challenges.",
   input_schema: {
     type: "object" as const,
     properties: {
-      approved: { type: "boolean" },
-      hasIssues: { type: "boolean" },
-      challenges: {
+      section_reviews: {
         type: "array",
         items: {
           type: "object",
           properties: {
-            id: { type: "string" },
-            type: { type: "string" },
-            section: { type: "string" },
-            claim: { type: "string" },
-            question: { type: "string" },
-            severity: { type: "string" },
-            requestedAction: { type: "string" },
+            section_id: { type: "string" },
+            approved: { type: "boolean" },
+            notes: { type: "string", description: "Overall notes for this section" },
+            challenges: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  type: { type: "string", enum: ["numerical", "data-integrity", "messaging", "assumption", "policy"] },
+                  claim: { type: "string", description: "The exact claim from the briefing being challenged" },
+                  question: { type: "string", description: "The specific question or concern raised" },
+                  severity: { type: "string", enum: ["error", "concern", "assumption"] },
+                  requestedAction: { type: "string", description: "What the analyst should specifically do" },
+                },
+                required: ["id", "type", "claim", "question", "severity", "requestedAction"],
+              },
+            },
           },
-          required: ["id", "type", "section", "claim", "question", "severity", "requestedAction"],
+          required: ["section_id", "approved", "challenges", "notes"],
         },
       },
+      overall_approved: { type: "boolean" },
       summary: { type: "string" },
     },
-    required: ["approved", "hasIssues", "challenges", "summary"],
+    required: ["section_reviews", "overall_approved", "summary"],
+  },
+};
+
+const ANALYST_RESPONSE_TOOL = {
+  name: "respond_to_challenges",
+  description: "For each section with challenges, decide whether to incorporate the auditor's point or defend the original analysis. This reasoning is the audit trail.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      section_responses: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            section_id: { type: "string" },
+            resolution_type: {
+              type: "string",
+              enum: ["incorporated", "rejected"],
+              description: "incorporated = you agree and have revised; rejected = you defend original with reasoning",
+            },
+            reasoning: {
+              type: "string",
+              description: "Why you incorporated or rejected the challenge. This is the permanent audit record — be specific.",
+            },
+            final_content: {
+              type: "string",
+              description: "The final section content — revised if incorporated, original if rejected.",
+            },
+          },
+          required: ["section_id", "resolution_type", "reasoning", "final_content"],
+        },
+      },
+    },
+    required: ["section_responses"],
   },
 };
 
@@ -312,59 +365,131 @@ async function runBriefing(
     if (sectionsError) console.error("Sections insert failed:", sectionsError.message);
   }
 
-  // 6. Auditor pass — use tool_use for guaranteed valid JSON
-  const sectionsText = analystSections.map((s) => `## ${s.title}\n${s.content}`).join("\n\n");
+  // 6. Auditor pass — per-section challenges
+  const sectionsText = analystSections.map((s) => `## ${s.title} [section_id: ${s.id}]\n${s.content}`).join("\n\n");
   const auditorMessage = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 2048,
+    max_tokens: 4096,
     system: AUDITOR_SYSTEM_PROMPT,
     tools: [AUDITOR_TOOL],
     tool_choice: { type: "tool", name: "audit_briefing" },
     messages: [{
       role: "user",
-      content: `Inventory Context:\n${inventoryContext}\n\nBriefing to audit:\n${sectionsText}\n\nAudit this briefing.`,
+      content: `Inventory Context:\n${inventoryContext}\n\nSales History:\n${salesContext}\n\nBriefing to audit:\n${sectionsText}\n\nAudit each section. For each section provide specific challenges where you find issues — or an empty challenges array if the section is sound.`,
     }],
   });
 
-  let auditorResult: AuditorResult = { approved: true, hasIssues: false, challenges: [], summary: "Approved" };
+  let auditorResult: AuditorResult = {
+    section_reviews: [],
+    overall_approved: true,
+    summary: "Approved",
+  };
   const auditorToolBlock = auditorMessage.content.find((b) => b.type === "tool_use");
   if (auditorToolBlock && auditorToolBlock.type === "tool_use") {
     auditorResult = auditorToolBlock.input as AuditorResult;
   } else {
-    // Fallback: try text parsing
-    const auditorText = auditorMessage.content.find((b) => b.type === "text")?.type === "text"
-      ? (auditorMessage.content.find((b) => b.type === "text") as { type: "text"; text: string }).text
-      : "";
-    try {
-      auditorResult = extractJson(auditorText) as AuditorResult;
-    } catch (err) {
-      console.error("Failed to parse auditor response:", err);
-    }
+    console.error("Auditor tool_use block not found — using default approval");
   }
 
-  // 7. Update sections with auditor verdict
-  const auditorStatus = auditorResult.approved ? "approved" : "challenged";
+  // 7. Save per-section auditor challenges
   const auditedAt = new Date().toISOString();
+  const sectionReviewMap = new Map(
+    auditorResult.section_reviews.map((r) => [r.section_id, r]),
+  );
   for (const section of analystSections) {
+    const review = sectionReviewMap.get(section.id);
     await supabase.from("briefing_section").update({
-      auditor_status: auditorStatus,
-      auditor_notes: auditorResult.summary,
+      auditor_status: review?.approved === false ? "challenged" : "approved",
+      is_approved: review?.approved === true,
+      auditor_notes: review?.notes ?? null,
       auditor_reviewed_at: auditedAt,
-      is_approved: auditorResult.approved,
-      auditor_challenges: auditorResult.challenges?.length ? auditorResult.challenges : null,
+      auditor_challenges: review?.challenges?.length ? review.challenges : null,
     }).eq("blackboard_id", blackboardId).eq("section_id", section.id);
   }
 
-  // 8. Finalize
+  // 8. Analyst response — only for challenged sections
+  const challengedSections = analystSections.filter((s) => {
+    const review = sectionReviewMap.get(s.id);
+    return review && !review.approved && review.challenges?.length > 0;
+  });
+
+  const analystResponses: AnalystSectionResponse[] = [];
+
+  if (challengedSections.length > 0) {
+    const challengeContext = challengedSections.map((s) => {
+      const review = sectionReviewMap.get(s.id)!;
+      return [
+        `## ${s.title} [section_id: ${s.id}]`,
+        `**Original analysis:**`,
+        s.content,
+        `**Auditor challenges:**`,
+        review.challenges.map((c, i) =>
+          `${i + 1}. [${c.severity.toUpperCase()}] ${c.claim}\n   Question: ${c.question}\n   Requested action: ${c.requestedAction}`
+        ).join("\n"),
+      ].join("\n");
+    }).join("\n\n---\n\n");
+
+    const analystResponseMessage = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 4096,
+      system: `You are the analyst who wrote this briefing. The accounting lead has raised specific challenges. For each challenged section you must:
+1. Read your original analysis and the specific challenges carefully.
+2. Decide for each section: incorporate the auditor's point (revise your content) or reject it (defend your original position with evidence from the data).
+3. Your reasoning is permanent — it will be shown as the audit trail. Be direct and specific. Reference the data.
+4. If you incorporate: explain what you changed and why the auditor was right.
+5. If you reject: explain specifically why your original analysis is correct and the challenge doesn't hold.`,
+      tools: [ANALYST_RESPONSE_TOOL],
+      tool_choice: { type: "tool", name: "respond_to_challenges" },
+      messages: [{
+        role: "user",
+        content: `Inventory Context:\n${inventoryContext}\n\nSales History:\n${salesContext}\n\nChallenged sections:\n\n${challengeContext}\n\nRespond to each challenged section.`,
+      }],
+    });
+
+    const responseToolBlock = analystResponseMessage.content.find((b) => b.type === "tool_use");
+    if (responseToolBlock && responseToolBlock.type === "tool_use") {
+      const input = responseToolBlock.input as { section_responses: AnalystSectionResponse[] };
+      analystResponses.push(...(input.section_responses ?? []));
+    } else {
+      console.error("Analyst response tool_use block not found");
+    }
+  }
+
+  // 9. Save analyst responses and mark final section content
+  const responseMap = new Map(analystResponses.map((r) => [r.section_id, r]));
+  const respondedAt = new Date().toISOString();
+  for (const section of analystSections) {
+    const response = responseMap.get(section.id);
+    if (!response) continue;
+    await supabase.from("briefing_section").update({
+      analyst_response: response.reasoning,
+      analyst_responded_at: respondedAt,
+      resolution_type: response.resolution_type,
+      analyst_position: response.resolution_type === "rejected" ? response.final_content : null,
+      // If incorporated, overwrite analyst_draft with revised content
+      ...(response.resolution_type === "incorporated"
+        ? { analyst_draft: response.final_content }
+        : {}),
+      is_approved: true,
+    }).eq("blackboard_id", blackboardId).eq("section_id", section.id);
+  }
+
+  // 10. Finalize blackboard
+  const allChallenges = auditorResult.section_reviews.flatMap((r) => r.challenges ?? []);
   const { error: finalizeError } = await supabase.from("briefing_blackboard").update({
     overall_status: "final",
-    sections: analystSections,
-    conflicts: auditorResult.challenges ?? [],
-    approval_summary: auditorResult,
+    conflicts: allChallenges,
+    approval_summary: {
+      total: analystSections.length,
+      challenged: challengedSections.length,
+      incorporated: analystResponses.filter((r) => r.resolution_type === "incorporated").length,
+      rejected: analystResponses.filter((r) => r.resolution_type === "rejected").length,
+      approved: analystSections.length - challengedSections.length,
+    },
     is_final: true,
-    auditor_completed_review_at: new Date().toISOString(),
+    auditor_completed_review_at: auditedAt,
   }).eq("id", blackboardId);
 
   if (finalizeError) console.error("Blackboard finalize failed:", finalizeError.message);
-  console.log(`Briefing complete for report run ${reportRunId}, blackboard ${blackboardId}`);
+  console.log(`Briefing complete for report run ${reportRunId}, blackboard ${blackboardId}. Challenges: ${allChallenges.length}, Analyst responses: ${analystResponses.length}`);
 }

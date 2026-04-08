@@ -111,7 +111,7 @@ export default function DashboardPage() {
 
   // Find specific sections
   const executiveSummarySection = briefing?.sections.find(
-    (s) => s.section_id === "executive_summary" || s.title.toLowerCase().includes("executive")
+    (s) => s.section_id === "executive-summary" || s.title.toLowerCase().includes("executive")
   );
   const insightSections = briefing?.sections.filter(
     (s) => !s.section_id?.includes("executive") && s.analyst_draft
